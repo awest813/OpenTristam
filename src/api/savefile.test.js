@@ -169,4 +169,36 @@ describe('getPlayerName', () => {
     u32[7] = 0;
     expect(getPlayerName(buf, 'single_0.sv')).toBeNull();
   });
+
+it('returns null when codec_decode fails to parse the hero file', () => {
+    const buf = new ArrayBuffer(512);
+    const u8 = new Uint8Array(buf);
+    const u32 = new Uint32Array(buf);
+    u32[0] = 0x1A51504D;
+    u8[14] = 0; u8[15] = 0;
+    u32[4] = 32;
+    u32[5] = 48;
+    u32[6] = 1;
+    u32[7] = 1;
+
+    const hashEntry = new Uint32Array(4);
+    hashEntry[0] = hash('hero', 1);
+    hashEntry[1] = hash('hero', 2);
+    hashEntry[2] = 0;
+    hashEntry[3] = 0;
+
+    const blockEntry = new Uint32Array(4);
+    blockEntry[0] = 64;
+    blockEntry[1] = 8;
+    blockEntry[2] = 8;
+    blockEntry[3] = 0x80000000;
+
+    encrypt(hashEntry, hash('(hash table)', 3));
+    encrypt(blockEntry, hash('(block table)', 3));
+
+    u32.set(hashEntry, 8);
+    u32.set(blockEntry, 12);
+
+    expect(getPlayerName(buf, 'single_0.sv')).toBeNull();
+  });
 });
