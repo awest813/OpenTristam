@@ -1,0 +1,18 @@
+
+> diabloweb@1.0.39 start
+> node scripts/start.js
+
+Starting the development server...
+
+(node:5484) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Failed to compile.
+
+./src/App.js 30:8
+Module parse failed: Unexpected token (30:8)
+You may need an appropriate loader to handle this file type.
+| } catch (e) {}
+| class App extends React.Component {
+>   files = new Map();
+|   state = {
+|     started: false,

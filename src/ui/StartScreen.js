@@ -12,7 +12,7 @@ export default function StartScreen({ hasSpawn, hasSaves, onStart, onShowSaves, 
       <p>
         If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the button below to start playing.
         The game can be purchased from <ExternalLink href="https://www.gog.com/game/diablo">GoG</ExternalLink>.
-        {' '}<span className="link" onClick={onCompress}>Click here to compress the MPQ, greatly reducing its size.</span>
+        {' '}<span className="link" onClick={onCompress} role="button" tabIndex={0}>Click here to compress the MPQ, greatly reducing its size.</span>
       </p>
       {!hasSpawn && (
         <p>Or you can play the shareware version for free (50MB download).</p>
@@ -30,8 +30,8 @@ export default function StartScreen({ hasSpawn, hasSaves, onStart, onShowSaves, 
           }}
         />
       </form>
-      <div className="startButton" onClick={() => onStart(null)}>Play Shareware</div>
-      {hasSaves && <div className="startButton" onClick={onShowSaves}>Manage Saves</div>}
+      <div className="startButton" role="button" tabIndex={0} onClick={() => onStart(null)}>Play Shareware</div>
+      {hasSaves && <div className="startButton" role="button" tabIndex={0} onClick={onShowSaves}>Manage Saves</div>}
     </div>
   );
 }

@@ -52,7 +52,7 @@ export default class CompressMpq extends React.Component {
           <p>
             <a href={url} download="DIABDAT.MPQ">Click here if download doesn't start.</a>
           </p>
-          <div className="startButton" onClick={this.onClose}>Back</div>
+          <div className="startButton" role="button" tabIndex={0} onClick={this.onClose}>Back</div>
         </div>
       );
     }
@@ -76,7 +76,7 @@ export default class CompressMpq extends React.Component {
           <label htmlFor="loadFile" className="startButton">Select MPQ</label>
           <input accept=".mpq" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseFile}/>
         </form>
-        <div className="startButton" onClick={this.onClose}>Back</div>
+        <div className="startButton" role="button" tabIndex={0} onClick={this.onClose}>Back</div>
       </div>
     );
   }

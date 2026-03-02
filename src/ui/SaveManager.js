@@ -58,8 +58,8 @@ export default class SaveManager extends React.Component {
             <li key={name}>
               {name}
               {info && <span className="info">{info.name} (lv. {info.level} {PLAYER_CLASSES[info.cls]})</span>}
-              <FontAwesomeIcon className="btnDownload" icon={faDownload} onClick={() => this.downloadSave(name)}/>
-              <FontAwesomeIcon className="btnRemove" icon={faTimes} onClick={() => this.removeSave(name)}/>
+              <FontAwesomeIcon className="btnDownload" icon={faDownload} onClick={() => this.downloadSave(name)} title={`Download save ${name}`} aria-label={`Download save ${name}`} role="button" tabIndex={0} />
+              <FontAwesomeIcon className="btnRemove" icon={faTimes} onClick={() => this.removeSave(name)} title={`Delete save ${name}`} aria-label={`Delete save ${name}`} role="button" tabIndex={0} />
             </li>
           ))}
         </ul>
@@ -67,7 +67,7 @@ export default class SaveManager extends React.Component {
           <label htmlFor="saveFileInput" className="startButton">Upload Save</label>
           <input accept=".sv" type="file" id="saveFileInput" style={{display: 'none'}} onChange={this.uploadSave}/>
         </form>
-        <div className="startButton" onClick={onClose}>Back</div>
+        <div className="startButton" role="button" tabIndex={0} onClick={onClose}>Back</div>
       </div>
     );
   }
