@@ -1,7 +1,15 @@
 import React from 'react';
 import { ExternalLink } from '../api/errorReporter';
+import { useSession } from '../engine/sessionContext';
 
-export default function StartScreen({ hasSpawn, hasSaves, onStart, onShowSaves, onCompress }) {
+export default function StartScreen(props) {
+  const session = useSession();
+  const hasSpawn = props.hasSpawn != null ? props.hasSpawn : session.hasSpawn;
+  const hasSaves = props.hasSaves != null ? props.hasSaves : session.hasSaves;
+  const onStart = props.onStart || session.startGame;
+  const onShowSaves = props.onShowSaves || session.openSaveManager;
+  const onCompress = props.onCompress || session.openCompressor;
+
   return (
     <div className="start">
       <p>

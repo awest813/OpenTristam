@@ -16,6 +16,7 @@ import {
 import { findKeyboardRule, openKeyboard, handleKeyDown, handleKeyUp, handleKeyboardInput } from './input/keyboard';
 import { getMousePos, handleMouseMove, handleMouseDown, handleMouseUp } from './input/mouseHandlers';
 import { startGame, handleGameError, handleGameExit, handleProgress, setCurrentSave, setCursorPos } from './engine/session';
+import SessionContext from './engine/sessionContext';
 
 import ErrorOverlay from './ui/ErrorOverlay';
 import LoadingScreen from './ui/LoadingScreen';
@@ -165,6 +166,34 @@ class App extends React.Component {
     this.setState(s => ({savesVersion: s.savesVersion + 1, has_saves: true}));
   }
 
+  openSaveManager = () => this.setState({show_saves: true});
+  closeSaveManager = () => this.setState({show_saves: false});
+  openCompressor = () => this.setState({compress: true});
+  closeCompressor = () => this.setState({compress: false});
+
+  getSessionContextValue() {
+    const {started, loading, progress, error, retail, has_spawn, has_saves, savesVersion, show_saves, compress} = this.state;
+    return {
+      started,
+      loading,
+      progress,
+      error,
+      retail,
+      hasSpawn: has_spawn,
+      hasSaves: has_saves,
+      savesVersion,
+      showSaveManager: !!show_saves,
+      showCompressor: !!compress,
+      fs: this.fs,
+      saveName: this.saveName,
+      startGame: this.start,
+      openSaveManager: this.openSaveManager,
+      closeSaveManager: this.closeSaveManager,
+      openCompressor: this.openCompressor,
+      closeCompressor: this.closeCompressor,
+    };
+  }
+
   // ─── Pointer lock ───────────────────────────────────────────────────────────
 
   pointerLocked() {
@@ -312,78 +341,67 @@ class App extends React.Component {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   renderUi() {
-    const {started, loading, error, progress, has_spawn, has_saves, show_saves, compress, savesVersion} = this.state;
+    const {started, loading, error, show_saves, compress} = this.state;
     if (show_saves) {
-      return (
-        <SaveManager
-          fs={this.fs}
-          onClose={() => this.setState({show_saves: false})}
-          savesVersion={savesVersion}
-        />
-      );
+      return <SaveManager/>;
     } else if (compress) {
       return (
         <CompressMpq
-          onClose={() => this.setState({compress: false})}
+          onClose={this.closeCompressor}
           onError={this.onError}
           ref={e => { this.compressMpq = e; }}
         />
       );
     } else if (error) {
-      return <ErrorOverlay error={error} retail={this.state.retail} saveName={this.saveName}/>;
+      return <ErrorOverlay/>;
     } else if (loading && !started) {
-      return <LoadingScreen progress={progress}/>;
+      return <LoadingScreen/>;
     } else if (!started) {
-      return (
-        <StartScreen
-          hasSpawn={has_spawn}
-          hasSaves={has_saves}
-          onStart={this.start}
-          onShowSaves={() => this.setState({show_saves: true})}
-          onCompress={() => this.setState({compress: true})}
-        />
-      );
+      return <StartScreen/>;
     }
   }
 
   render() {
     const {started, error, dropping, updateAvailable} = this.state;
+    const sessionContextValue = this.getSessionContextValue();
     return (
-      <div className={classNames('App', {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
-        {updateAvailable && (
-          <div className="updateBanner">
-            A new version is available.{' '}
-            <button onClick={() => window.location.reload()}>Reload</button>
+      <SessionContext.Provider value={sessionContextValue}>
+        <div className={classNames('App', {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
+          {updateAvailable && (
+            <div className="updateBanner">
+              A new version is available.{' '}
+              <button onClick={() => window.location.reload()}>Reload</button>
+            </div>
+          )}
+          <div className="touch-ui touch-mods">
+            <div className={classNames('touch-button', 'touch-button-0', {active: this.touchMods[0]})} ref={this.setTouch0}/>
+            <div className={classNames('touch-button', 'touch-button-1', {active: this.touchMods[1]})} ref={this.setTouch1}/>
+            <div className={classNames('touch-button', 'touch-button-2', {active: this.touchMods[2]})} ref={this.setTouch2}/>
           </div>
-        )}
-        <div className="touch-ui touch-mods">
-          <div className={classNames('touch-button', 'touch-button-0', {active: this.touchMods[0]})} ref={this.setTouch0}/>
-          <div className={classNames('touch-button', 'touch-button-1', {active: this.touchMods[1]})} ref={this.setTouch1}/>
-          <div className={classNames('touch-button', 'touch-button-2', {active: this.touchMods[2]})} ref={this.setTouch2}/>
-        </div>
-        <div className="touch-ui touch-belt">
-          <div className={classNames('touch-button', 'touch-button-0')} ref={this.setTouch3}/>
-          <div className={classNames('touch-button', 'touch-button-1')} ref={this.setTouch4}/>
-          <div className={classNames('touch-button', 'touch-button-2')} ref={this.setTouch5}/>
-        </div>
-        <div className="touch-ui fkeys-left">
-          <div className={classNames('touch-button', 'touch-button-3')} ref={this.setTouch6}/>
-          <div className={classNames('touch-button', 'touch-button-4')} ref={this.setTouch7}/>
-        </div>
-        <div className="touch-ui fkeys-right">
-          <div className={classNames('touch-button', 'touch-button-5')} ref={this.setTouch8}/>
-          <div className={classNames('touch-button', 'touch-button-6')} ref={this.setTouch9}/>
-        </div>
-        <div className="Body">
-          <div className="inner">
-            {!error && <canvas ref={this.setCanvas} width={640} height={480}/>}
-            <input type="text" className="keyboard" onChange={this.onKeyboard} onBlur={this.onKeyboardBlur} ref={this.setKeyboard} spellCheck={false} style={this.showKeyboard || {}}/>
+          <div className="touch-ui touch-belt">
+            <div className={classNames('touch-button', 'touch-button-0')} ref={this.setTouch3}/>
+            <div className={classNames('touch-button', 'touch-button-1')} ref={this.setTouch4}/>
+            <div className={classNames('touch-button', 'touch-button-2')} ref={this.setTouch5}/>
+          </div>
+          <div className="touch-ui fkeys-left">
+            <div className={classNames('touch-button', 'touch-button-3')} ref={this.setTouch6}/>
+            <div className={classNames('touch-button', 'touch-button-4')} ref={this.setTouch7}/>
+          </div>
+          <div className="touch-ui fkeys-right">
+            <div className={classNames('touch-button', 'touch-button-5')} ref={this.setTouch8}/>
+            <div className={classNames('touch-button', 'touch-button-6')} ref={this.setTouch9}/>
+          </div>
+          <div className="Body">
+            <div className="inner">
+              {!error && <canvas ref={this.setCanvas} width={640} height={480}/>}
+              <input type="text" className="keyboard" onChange={this.onKeyboard} onBlur={this.onKeyboardBlur} ref={this.setKeyboard} spellCheck={false} style={this.showKeyboard || {}}/>
+            </div>
+          </div>
+          <div className="BodyV">
+            {this.renderUi()}
           </div>
         </div>
-        <div className="BodyV">
-          {this.renderUi()}
-        </div>
-      </div>
+      </SessionContext.Provider>
     );
   }
 }

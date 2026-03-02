@@ -53,7 +53,7 @@ Goal: reduce `App.js` from a monolithic orchestration class to a thin compositio
 - ✅ Extract mouse handling into `src/input/mouseHandlers.js` with unit tests
 - ✅ Extract loading and start screen UI into `src/ui/LoadingScreen` and `src/ui/StartScreen`
 - ✅ `App.js` LOC reduced by 45% (693 → 381 lines); all extracted modules have unit tests
-- 🔲 Introduce formal session context (React Context) so UI components don't depend on `App` internals
+- ✅ Introduce formal session context (React Context) so UI components don't depend on `App` internals
 
 ---
 

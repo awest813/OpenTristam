@@ -155,7 +155,7 @@ Contributions are welcome. Before opening a large PR, please read:
 
 See [ROADMAP.md](ROADMAP.md) for the full feature and modernization roadmap.
 
-Current focus (Phase 0–1): CI hardening, unit test coverage, and decomposing `App.js` into focused modules.
+Current focus (Phase 2): toolchain and dependency modernization while preserving runtime behavior.
 
 ---
 

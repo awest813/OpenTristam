@@ -4,7 +4,9 @@ This roadmap focuses on practical, low-risk modernization while preserving game 
 
 ## Current Status
 
-- **Phase 0:** In progress.
+- **Phase 0:** Complete.
+- **Phase 1:** Complete.
+- **Phase 2:** Planned (next active phase).
 - Architecture baseline overview: `docs/architecture-overview.md`.
 - System flow diagrams (boot/lifecycle/handshake/storage): `docs/system-diagrams.md`.
 - ADR template: `docs/adr-template.md`.
@@ -15,6 +17,7 @@ This roadmap focuses on practical, low-risk modernization while preserving game 
 - Added unit tests for the extracted file-drop behavior in `src/input/fileDrop.test.js`.
 - Added `src/input/fileDropTarget.js` to centralize drag/drop listener lifecycle with explicit `attach()` / `detach()` operations, and wired `App` to use it.
 - Added `src/input/eventListeners.js` and moved runtime input/window listener wiring in `App` behind an explicit attach/detach lifecycle to prevent leaked global listeners.
+- Added a formal session context (`src/engine/sessionContext.js`) so UI overlays consume session state/actions without relying on `App` prop plumbing.
 
 ## Modernization Outcomes
 
