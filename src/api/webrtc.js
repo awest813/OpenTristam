@@ -198,7 +198,7 @@ class webrtc_client {
         onClose();
         break;
       case server_packet.disconnect.code:
-        if (pkt.id === 'myplr') {
+        if (pkt.id === this.myplr) {
           onClose();
         }
         break;

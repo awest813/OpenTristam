@@ -35,34 +35,14 @@ function onRender(api, ctx, {bitmap, images, text, clip, belt}) {
   api.updateBelt(belt);
 }
 
-function testOffscreen() {
-  return false;
-  // This works but I couldn't see any performance difference, and support for 2D canvas in workers is very poor.
-  // In this mode, instead of sending a batch of areas to draw back to the main thread, the worker does all drawing on its own and sends a complete bitmap object back.
-  // However, this effectively clears the worker's canvas, so we need to redraw the whole frame every time, which defeats the performance gained from reduced copying.
-  /*try {
-    const canvas = document.createElement("canvas");
-    const offscreen = canvas.transferControlToOffscreen();
-    const context = offscreen.getContext("2d");
-    return context != null;
-  } catch (e) {
-    return false;
-  }*/
-}
-
 async function do_load_game(api, audio, mpq, spawn) {
   const fs = await api.fs;
   if (spawn && !mpq) {
     await load_spawn(api, fs);
   }
 
-  let context = null, offscreen = false;
-  if (testOffscreen()) {
-    context = api.canvas.getContext("bitmaprenderer");
-    offscreen = true;
-  } else {
-    context = api.canvas.getContext("2d", {alpha: false});
-  }
+  const context = api.canvas.getContext("2d", {alpha: false});
+
   return await new Promise((resolve, reject) => {
     try {
       const worker = new Worker();
@@ -71,6 +51,20 @@ async function do_load_game(api, audio, mpq, spawn) {
       const webrtc = webrtc_open(data => {
         packetQueue.push(data);
       });
+
+      let packetInterval = setInterval(() => {
+        if (packetQueue.length) {
+          worker.postMessage({action: "packetBatch", batch: packetQueue}, packetQueue);
+          packetQueue.length = 0;
+        }
+      }, 20);
+
+      const stopInterval = () => {
+        if (packetInterval !== null) {
+          clearInterval(packetInterval);
+          packetInterval = null;
+        }
+      };
 
       worker.addEventListener("message", ({data}) => {
         switch (data.action) {
@@ -98,22 +92,25 @@ async function do_load_game(api, audio, mpq, spawn) {
           api.openKeyboard(data.rect);
           break;
         case "error":
+          stopInterval();
           audio.stop_all();
           api.onError(data.error, data.stack);
           break;
         case "failed":
+          stopInterval();
           reject({message: data.error, stack: data.stack});
           break;
         case "progress":
           api.onProgress({text: data.text, loaded: data.loaded, total: data.total});
           break;
         case "exit":
+          stopInterval();
           api.onExit();
           break;
         case "current_save":
           api.setCurrentSave(data.name);
           break;
-          case "packet":
+        case "packet":
           webrtc.send(data.buffer);
           break;
         case "packetBatch":
@@ -123,18 +120,12 @@ async function do_load_game(api, audio, mpq, spawn) {
           break;
         default:
         }
-      });          
-      const transfer= [];
+      });
+      const transfer = [];
       for (let [, file] of fs.files) {
         transfer.push(file.buffer);
       }
-      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen}, transfer);
-      setInterval(() => {
-        if (packetQueue.length) {
-          worker.postMessage({action: "packetBatch", batch: packetQueue}, packetQueue);
-          packetQueue.length = 0;
-        }
-      }, 20);
+      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen: false}, transfer);
       delete fs.files;
     } catch (e) {
       reject(e);
