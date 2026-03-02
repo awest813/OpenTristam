@@ -147,6 +147,15 @@ describe('buffer_reader', () => {
       expect(reader.pos).toBe(2);
     });
 
+    it('reads complex alternating bit patterns', () => {
+      const buffer = new Uint8Array([0xAA, 0x55, 0xFF, 0x00]);
+      const reader = new buffer_reader(buffer);
+      expect(reader.read8()).toBe(0xAA);
+      expect(reader.read8()).toBe(0x55);
+      expect(reader.read8()).toBe(0xFF);
+      expect(reader.read8()).toBe(0x00);
+    });
+
     it('throws error if buffer is too small', () => {
       const reader = new buffer_reader(new Uint8Array(0));
       expect(() => reader.read8()).toThrow('packet too small');
@@ -159,6 +168,13 @@ describe('buffer_reader', () => {
       const reader = new buffer_reader(buffer);
       expect(reader.read16()).toBe(0x3412);
       expect(reader.pos).toBe(2);
+    });
+
+    it('reads complex alternating bit patterns', () => {
+      const buffer = new Uint8Array([0xAA, 0x55, 0xFF, 0x00]);
+      const reader = new buffer_reader(buffer);
+      expect(reader.read16()).toBe(0x55AA);
+      expect(reader.read16()).toBe(0x00FF);
     });
 
     it('throws error if buffer is too small', () => {
@@ -175,6 +191,13 @@ describe('buffer_reader', () => {
       expect(reader.pos).toBe(4);
     });
 
+    it('reads complex alternating bit patterns', () => {
+      const buffer = new Uint8Array([0xAA, 0x55, 0xFF, 0x00, 0x55, 0xAA, 0x00, 0xFF]);
+      const reader = new buffer_reader(buffer);
+      expect(reader.read32()).toBe(0x00FF55AA);
+      expect(reader.read32()).toBe(0xFF00AA55 | 0); // use | 0 to handle bitwise ops on signed 32bit int
+    });
+
     it('throws error if buffer is too small', () => {
       const reader = new buffer_reader(new Uint8Array(3));
       expect(() => reader.read32()).toThrow('packet too small');
@@ -188,6 +211,15 @@ describe('buffer_reader', () => {
       const reader = new buffer_reader(buffer);
       expect(reader.read_str()).toBe('hello');
       expect(reader.pos).toBe(6);
+      expect(reader.done()).toBe(true);
+    });
+
+    it('reads empty string correctly', () => {
+      const buffer = new Uint8Array([0]);
+      const reader = new buffer_reader(buffer);
+      expect(reader.read_str()).toBe('');
+      expect(reader.pos).toBe(1);
+      expect(reader.done()).toBe(true);
     });
 
     it('throws error if length byte is missing', () => {
@@ -195,8 +227,8 @@ describe('buffer_reader', () => {
       expect(() => reader.read_str()).toThrow('packet too small');
     });
 
-    it('throws error if string data is incomplete', () => {
-      const buffer = new Uint8Array([5, 104, 101, 108]); // Length 5, but only 3 bytes of data
+    it('throws error if string data is incomplete (exact boundary)', () => {
+      const buffer = new Uint8Array([5, 104, 101, 108, 108]); // Length 5, but only 4 bytes of data (N-1)
       const reader = new buffer_reader(buffer);
       expect(() => reader.read_str()).toThrow('packet too small');
     });
@@ -214,6 +246,18 @@ describe('buffer_reader', () => {
       expect(result[1]).toBe(20);
       expect(result[2]).toBe(30);
       expect(reader.pos).toBe(7);
+      expect(reader.done()).toBe(true);
+    });
+
+    it('reads an empty size-prefixed buffer correctly', () => {
+      // 4 bytes length (0)
+      const buffer = new Uint8Array([0, 0, 0, 0]);
+      const reader = new buffer_reader(buffer);
+      const result = reader.read_buf();
+      expect(result).toBeInstanceOf(Uint8Array);
+      expect(result.length).toBe(0);
+      expect(reader.pos).toBe(4);
+      expect(reader.done()).toBe(true);
     });
 
     it('throws error if size header is incomplete', () => {
@@ -221,8 +265,8 @@ describe('buffer_reader', () => {
       expect(() => reader.read_buf()).toThrow('packet too small');
     });
 
-    it('throws error if buffer data is incomplete', () => {
-      const buffer = new Uint8Array([5, 0, 0, 0, 10, 20]); // Length 5, but only 2 bytes of data
+    it('throws error if buffer data is incomplete (exact boundary)', () => {
+      const buffer = new Uint8Array([5, 0, 0, 0, 10, 20, 30, 40]); // Length 5, but only 4 bytes of data (N-1)
       const reader = new buffer_reader(buffer);
       expect(() => reader.read_buf()).toThrow('packet too small');
     });
