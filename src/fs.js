@@ -48,7 +48,8 @@ async function downloadFile(store, name) {
 }
 
 async function downloadSaves(store) {
-  for (let name of await store.keys()) {
+  const keys = await store.keys();
+  for (let name of keys) {
     if (name.match(/\.sv$/i)) {
       downloadFile(store, name);
     }
@@ -72,7 +73,8 @@ export default async function create_fs(load) {
   try {
     const store = new IdbKvStore('diablo_fs');
     const files = new Map();
-    for (let [name, data] of Object.entries(await store.json())) {
+    const storeJson = await store.json();
+    for (let [name, data] of Object.entries(storeJson)) {
       files.set(name, data);
     }
     /*if (load) {
