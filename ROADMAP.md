@@ -112,7 +112,7 @@ Status legend:
 - ✅ Keyboard-operable overlay controls
 - ✅ Focus trap + return-focus behavior for dialogs
 - ✅ Improved ARIA labeling and semantic landmarks in app chrome
-- 🔲 Optional high-contrast UI mode (outside core game rendering)
+- ✅ Optional high-contrast UI mode (outside core game rendering)
 
 ### Performance
 - 🔲 Reduce startup main-thread blocking

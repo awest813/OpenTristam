@@ -88,6 +88,23 @@ describe('StartScreen', () => {
     expect(setTouchPanSensitivity).toHaveBeenCalledWith('high');
   });
 
+
+  it('toggles high contrast mode from accessibility settings', async () => {
+    const setHighContrastMode = jest.fn();
+    await renderWithSession({
+      highContrastMode: false,
+      setHighContrastMode,
+    });
+
+    const highContrastCheckbox = container.querySelector('.accessibilitySettings input[type="checkbox"]');
+    Object.defineProperty(highContrastCheckbox, 'checked', {value: true, configurable: true});
+
+    act(() => {
+      highContrastCheckbox.dispatchEvent(new Event('change', {bubbles: true}));
+    });
+
+    expect(setHighContrastMode).toHaveBeenCalledWith(true);
+  });
   it('renders mobile onboarding and dismisses it', async () => {
     const dismissMobileOnboarding = jest.fn();
     await renderWithSession({

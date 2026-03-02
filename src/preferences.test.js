@@ -15,12 +15,28 @@ describe('preferences', () => {
       touchLayoutPreset: 'unknown',
       touchPanSensitivity: 'hyper',
       mobileOnboardingDismissed: 'yes',
+      highContrastMode: 'enabled',
     });
 
     expect(normalized).toEqual({
       touchLayoutPreset: 'default',
       touchPanSensitivity: 'normal',
       mobileOnboardingDismissed: true,
+      highContrastMode: true,
+    });
+  });
+
+  it('preserves explicit false string values for booleans', () => {
+    const normalized = normalizePreferences({
+      mobileOnboardingDismissed: 'false',
+      highContrastMode: 'false',
+    });
+
+    expect(normalized).toEqual({
+      touchLayoutPreset: 'default',
+      touchPanSensitivity: 'normal',
+      mobileOnboardingDismissed: false,
+      highContrastMode: false,
     });
   });
 
@@ -30,12 +46,13 @@ describe('preferences', () => {
 
   it('persists and merges preference updates', () => {
     savePreferences({touchLayoutPreset: 'thumb'});
-    savePreferences({touchPanSensitivity: 'high', mobileOnboardingDismissed: true});
+    savePreferences({touchPanSensitivity: 'high', mobileOnboardingDismissed: true, highContrastMode: true});
 
     expect(loadPreferences()).toEqual({
       touchLayoutPreset: 'thumb',
       touchPanSensitivity: 'high',
       mobileOnboardingDismissed: true,
+      highContrastMode: true,
     });
   });
 

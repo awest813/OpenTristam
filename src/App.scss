@@ -220,6 +220,28 @@ body, #root, .App {
         padding: 4px 6px;
       }
     }
+    .accessibilitySettings {
+      margin: 14px 0 4px;
+      padding: 10px 12px;
+      border: 1px solid #555;
+      background: rgba(20, 20, 20, 0.8);
+      text-align: left;
+      .accessibilitySettingsTitle {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #ddd;
+      }
+      .accessibilitySettingsRow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      input[type='checkbox'] {
+        width: 18px;
+        height: 18px;
+      }
+    }
   }
 }
 
@@ -713,4 +735,36 @@ body, #root, .App {
 
 .multiplayerBanner-failed {
   border-color: #a44242;
+}
+
+.App.high-contrast {
+  .start, .error {
+    border-color: #fff;
+    background: #000;
+    color: #fff;
+  }
+  .start .startButton {
+    background: #000;
+    color: #fff;
+    border-color: #fff;
+    &:hover {
+      background-color: #222;
+    }
+  }
+  a, .link, .linkButton {
+    color: #87cefa;
+    text-decoration: underline;
+  }
+  .mobileOnboarding,
+  .touchSettings,
+  .accessibilitySettings {
+    background: #000;
+    border-color: #fff;
+    color: #fff;
+  }
+  .touchSettings select {
+    background: #000;
+    color: #fff;
+    border-color: #fff;
+  }
 }

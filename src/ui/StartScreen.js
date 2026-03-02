@@ -30,6 +30,8 @@ export default function StartScreen(props) {
   const isTouchDevice = props.isTouchDevice != null ? props.isTouchDevice : session.isTouchDevice;
   const showMobileOnboarding = props.showMobileOnboarding != null ? props.showMobileOnboarding : session.showMobileOnboarding;
   const onDismissMobileOnboarding = props.onDismissMobileOnboarding || session.dismissMobileOnboarding;
+  const highContrastMode = props.highContrastMode != null ? props.highContrastMode : session.highContrastMode;
+  const onHighContrastModeChange = props.onHighContrastModeChange || session.setHighContrastMode;
   const mpqInputRef = React.useRef(null);
 
   const openMpqPicker = () => {
@@ -95,6 +97,17 @@ export default function StartScreen(props) {
           </label>
         </div>
       )}
+      <div className="accessibilitySettings" role="group" aria-label="Accessibility settings">
+        <div className="accessibilitySettingsTitle">Accessibility</div>
+        <label className="accessibilitySettingsRow">
+          <input
+            type="checkbox"
+            checked={highContrastMode}
+            onChange={event => onHighContrastModeChange(event.target.checked)}
+          />
+          <span>Enable high-contrast UI mode</span>
+        </label>
+      </div>
       {!hasSpawn && (
         <p>Or you can play the shareware version for free (50MB download).</p>
       )}

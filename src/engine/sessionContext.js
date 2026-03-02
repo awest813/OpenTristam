@@ -39,6 +39,8 @@ export const defaultSessionValue = {
   isTouchDevice: false,
   showMobileOnboarding: false,
   dismissMobileOnboarding: noop,
+  highContrastMode: false,
+  setHighContrastMode: noop,
 };
 
 const SessionContext = React.createContext(defaultSessionValue);

@@ -68,6 +68,7 @@ class App extends React.Component {
     isTouchDevice: false,
     showMobileOnboarding: false,
     mobileOnboardingDismissed: false,
+    highContrastMode: false,
     multiplayerStatus: 'idle',
     multiplayerErrorCategory: null,
     multiplayerMessage: '',
@@ -153,6 +154,7 @@ class App extends React.Component {
       mobileOnboardingDismissed: preferences.mobileOnboardingDismissed,
       isTouchDevice,
       showMobileOnboarding: isTouchDevice && !preferences.mobileOnboardingDismissed,
+      highContrastMode: preferences.highContrastMode,
     });
 
     this.fs.then(fs => {
@@ -341,6 +343,12 @@ class App extends React.Component {
     });
   }
 
+  setHighContrastMode = enabled => {
+    const highContrastMode = Boolean(enabled);
+    savePreferences({highContrastMode});
+    this.setState({highContrastMode});
+  }
+
   flushPendingCompressedFile = () => {
     if (!this.pendingCompressedFile || !this.compressMpq || !this.state.compress) {
       return;
@@ -389,6 +397,7 @@ class App extends React.Component {
       touchPanSensitivity,
       isTouchDevice,
       showMobileOnboarding,
+      highContrastMode,
     } = this.state;
     return {
       started,
@@ -426,6 +435,8 @@ class App extends React.Component {
       isTouchDevice,
       showMobileOnboarding,
       dismissMobileOnboarding: this.dismissMobileOnboarding,
+      highContrastMode,
+      setHighContrastMode: this.setHighContrastMode,
     };
   }
 
@@ -647,12 +658,12 @@ class App extends React.Component {
   }
 
   render() {
-    const {started, error, dropping, updateAvailable, touchLayoutPreset} = this.state;
+    const {started, error, dropping, updateAvailable, touchLayoutPreset, highContrastMode} = this.state;
     const sessionContextValue = this.getSessionContextValue();
     const touchPresetClass = `touch-preset-${touchLayoutPreset || DEFAULT_TOUCH_LAYOUT_PRESET}`;
     return (
       <SessionContext.Provider value={sessionContextValue}>
-        <div className={classNames('App', touchPresetClass, {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
+        <div className={classNames('App', touchPresetClass, {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard, 'high-contrast': highContrastMode})} ref={this.setElement}>
           {updateAvailable && (
             <div className="updateBanner" role="status" aria-live="polite" aria-atomic="true">
               A new version is available.{' '}
