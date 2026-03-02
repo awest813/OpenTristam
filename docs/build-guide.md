@@ -182,6 +182,29 @@ npm run preview
 
 Vite starts a local preview server at **http://localhost:4173**.
 
+### Enforce bundle budgets locally
+
+After building, run:
+
+```bash
+npm run check:bundle-budget
+```
+
+This validates gzip-compressed size budgets for:
+
+- main JS chunk
+- total JS
+- total CSS
+- total WASM
+
+If a budget is exceeded, the command exits non-zero and prints the failing metric(s).  
+You can temporarily override thresholds via environment variables such as:
+
+- `BUNDLE_BUDGET_MAIN_JS_GZIP_BYTES`
+- `BUNDLE_BUDGET_TOTAL_JS_GZIP_BYTES`
+- `BUNDLE_BUDGET_TOTAL_CSS_GZIP_BYTES`
+- `BUNDLE_BUDGET_TOTAL_WASM_GZIP_BYTES`
+
 ---
 
 ## Deploying to GitHub Pages
@@ -313,6 +336,7 @@ npm ci --legacy-peer-deps
 npm run lint -- --max-warnings 50
 npm test -- --watchAll=false --ci
 npm run build
+npm run check:bundle-budget
 ```
 
-All four steps (install → lint → test → build) must pass before a PR can merge.
+All five steps (install → lint → test → build → bundle budget) must pass before a PR can merge.

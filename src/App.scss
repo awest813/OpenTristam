@@ -170,6 +170,56 @@ body, #root, .App {
         }
       }
     }
+    .mobileOnboarding {
+      margin: 14px 0;
+      padding: 10px 12px;
+      border: 1px solid #6b4c1e;
+      background: rgba(58, 41, 17, 0.55);
+      text-align: left;
+      font-size: 14px;
+      .mobileOnboardingTitle {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #e8d5a3;
+      }
+      ul {
+        margin: 0 0 8px 18px;
+        padding: 0;
+      }
+      li {
+        margin-bottom: 4px;
+      }
+    }
+    .touchSettings {
+      margin: 14px 0 4px;
+      padding: 10px 12px;
+      border: 1px solid #555;
+      background: rgba(20, 20, 20, 0.8);
+      text-align: left;
+      .touchSettingsTitle {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #ddd;
+      }
+      .touchSettingsRow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .touchSettingsRow:last-child {
+        margin-bottom: 0;
+      }
+      select {
+        background: #111;
+        color: #f0e0b8;
+        border: 1px solid #666;
+        padding: 4px 6px;
+      }
+    }
   }
 }
 
@@ -412,6 +462,42 @@ body, #root, .App {
   }
   &.touch.keyboard .touch-ui {
     display: none;
+  }
+}
+
+.App.touch-preset-compact {
+  .touch-ui.touch-mods .touch-button,
+  .touch-ui.fkeys-left .touch-button,
+  .touch-ui.fkeys-right .touch-button {
+    width: 13vh;
+    height: 13vh;
+  }
+  .touch-ui.touch-belt .touch-button {
+    width: 10vh;
+    height: 10vh;
+  }
+}
+
+.App.touch-preset-thumb {
+  .touch-ui.touch-mods .touch-button-0,
+  .touch-ui.touch-belt .touch-button-0 {
+    top: 32vh;
+  }
+  .touch-ui.touch-mods .touch-button-1,
+  .touch-ui.touch-belt .touch-button-1 {
+    top: 52vh;
+  }
+  .touch-ui.touch-mods .touch-button-2,
+  .touch-ui.touch-belt .touch-button-2 {
+    top: 72vh;
+  }
+  .touch-ui.fkeys-left .touch-button-3,
+  .touch-ui.fkeys-right .touch-button-5 {
+    top: 20%;
+  }
+  .touch-ui.fkeys-left .touch-button-4,
+  .touch-ui.fkeys-right .touch-button-6 {
+    top: 78%;
   }
 }
 

@@ -61,4 +61,48 @@ describe('StartScreen', () => {
 
     expect(startGame).toHaveBeenCalledWith(file);
   });
+
+  it('updates touch settings from selector controls', async () => {
+    const setTouchLayoutPreset = jest.fn();
+    const setTouchPanSensitivity = jest.fn();
+    await renderWithSession({
+      isTouchDevice: true,
+      touchLayoutPreset: 'default',
+      touchPanSensitivity: 'normal',
+      setTouchLayoutPreset,
+      setTouchPanSensitivity,
+    });
+
+    const selects = container.querySelectorAll('.touchSettings select');
+    const layoutSelect = selects[0];
+    const sensitivitySelect = selects[1];
+    Object.defineProperty(layoutSelect, 'value', {value: 'thumb', configurable: true});
+    Object.defineProperty(sensitivitySelect, 'value', {value: 'high', configurable: true});
+
+    act(() => {
+      layoutSelect.dispatchEvent(new Event('change', {bubbles: true}));
+      sensitivitySelect.dispatchEvent(new Event('change', {bubbles: true}));
+    });
+
+    expect(setTouchLayoutPreset).toHaveBeenCalledWith('thumb');
+    expect(setTouchPanSensitivity).toHaveBeenCalledWith('high');
+  });
+
+  it('renders mobile onboarding and dismisses it', async () => {
+    const dismissMobileOnboarding = jest.fn();
+    await renderWithSession({
+      showMobileOnboarding: true,
+      dismissMobileOnboarding,
+    });
+
+    expect(container.querySelector('.mobileOnboarding')).not.toBeNull();
+    const dismiss = Array.from(container.querySelectorAll('button.linkButton'))
+      .find(node => node.textContent.trim() === 'Got it');
+
+    act(() => {
+      dismiss.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    });
+
+    expect(dismissMobileOnboarding).toHaveBeenCalledTimes(1);
+  });
 });

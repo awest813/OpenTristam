@@ -103,10 +103,10 @@ Status legend:
 **Goal:** iterative improvements that preserve gameplay correctness.
 
 ### Mobile & Touch
-- 🔲 Layout presets for touch controls
-- 🔲 Better two-finger pan sensitivity calibration
+- ✅ Layout presets for touch controls (`default`, `compact`, `thumb` presets)
+- ✅ Better two-finger pan sensitivity calibration (low/normal/high thresholds)
 - 🔲 Gesture conflict handling (tap/pan/long-press)
-- 🔲 First-run onboarding for MPQ import on mobile
+- ✅ First-run onboarding for MPQ import on mobile (dismissible and persisted)
 
 ### Accessibility
 - ✅ Keyboard-operable overlay controls
@@ -117,8 +117,8 @@ Status legend:
 ### Performance
 - 🔲 Reduce startup main-thread blocking
 - 🔲 Profile worker hotspots and optimize render patch pipeline
-- 🔲 Lazy-load MPQ compression tooling
-- 🔲 Add bundle-size budget checks in CI
+- ✅ Lazy-load MPQ compression tooling (loaded only when compressor UI opens)
+- ✅ Add bundle-size budget checks in CI (`npm run check:bundle-budget`)
 
 ### PWA & Offline
 - 🔲 Clear service-worker update UX

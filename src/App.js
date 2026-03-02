@@ -23,7 +23,14 @@ import LoadingScreen from './ui/LoadingScreen';
 import StartScreen from './ui/StartScreen';
 import SaveManager from './ui/SaveManager';
 import MultiplayerStatusBanner from './ui/MultiplayerStatusBanner';
-import CompressMpq from './mpqcmp';
+import {
+  DEFAULT_TOUCH_LAYOUT_PRESET,
+  DEFAULT_TOUCH_PAN_SENSITIVITY,
+  TOUCH_LAYOUT_PRESETS,
+  TOUCH_PAN_SENSITIVITIES,
+  loadPreferences,
+  savePreferences,
+} from './preferences';
 
 import Peer from 'peerjs';
 
@@ -39,6 +46,7 @@ try {
   keyboardRule = findKeyboardRule();
 } catch (e) {
 }
+const CompressMpq = React.lazy(() => import('./mpqcmp'));
 
 class App extends React.Component {
   files = new Map();
@@ -51,6 +59,11 @@ class App extends React.Component {
     savesVersion: 0,
     updateAvailable: false,
     storageError: null,
+    touchLayoutPreset: DEFAULT_TOUCH_LAYOUT_PRESET,
+    touchPanSensitivity: DEFAULT_TOUCH_PAN_SENSITIVITY,
+    isTouchDevice: false,
+    showMobileOnboarding: false,
+    mobileOnboardingDismissed: false,
     multiplayerStatus: 'idle',
     multiplayerErrorCategory: null,
     multiplayerMessage: '',
@@ -128,6 +141,15 @@ class App extends React.Component {
   componentDidMount() {
     this.fileDropTarget.attach();
     window.addEventListener('swUpdate', this.onSwUpdate);
+    const preferences = loadPreferences();
+    const isTouchDevice = this.detectTouchDevice();
+    this.setState({
+      touchLayoutPreset: preferences.touchLayoutPreset,
+      touchPanSensitivity: preferences.touchPanSensitivity,
+      mobileOnboardingDismissed: preferences.mobileOnboardingDismissed,
+      isTouchDevice,
+      showMobileOnboarding: isTouchDevice && !preferences.mobileOnboardingDismissed,
+    });
 
     this.fs.then(fs => {
       if (fs.initError) {
@@ -158,8 +180,9 @@ class App extends React.Component {
     const file = getDropFile(e);
     if (file) {
       e.preventDefault();
-      if (this.compressMpq && !file.name.match(/\.sv$/i)) {
-        this.compressMpq.start(file);
+      if (this.state.compress && !file.name.match(/\.sv$/i)) {
+        this.pendingCompressedFile = file;
+        this.flushPendingCompressedFile();
       } else {
         this.start(file);
       }
@@ -282,14 +305,63 @@ class App extends React.Component {
     this.setState({multiplayerNoticeDismissed: true});
   }
 
+  detectTouchDevice() {
+    const nav = window.navigator || {};
+    const hasTouchPoints = !!(nav.maxTouchPoints && nav.maxTouchPoints > 0);
+    const hasTouchEvents = 'ontouchstart' in window;
+    const coarsePointer = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
+    return hasTouchPoints || hasTouchEvents || coarsePointer;
+  }
+
+  setTouchLayoutPreset = preset => {
+    if (!TOUCH_LAYOUT_PRESETS.includes(preset)) {
+      return;
+    }
+    savePreferences({touchLayoutPreset: preset});
+    this.setState({touchLayoutPreset: preset});
+  }
+
+  setTouchPanSensitivity = sensitivity => {
+    if (!TOUCH_PAN_SENSITIVITIES.includes(sensitivity)) {
+      return;
+    }
+    savePreferences({touchPanSensitivity: sensitivity});
+    this.setState({touchPanSensitivity: sensitivity});
+  }
+
+  dismissMobileOnboarding = () => {
+    savePreferences({mobileOnboardingDismissed: true});
+    this.setState({
+      mobileOnboardingDismissed: true,
+      showMobileOnboarding: false,
+    });
+  }
+
+  flushPendingCompressedFile = () => {
+    if (!this.pendingCompressedFile || !this.compressMpq || !this.state.compress) {
+      return;
+    }
+    const file = this.pendingCompressedFile;
+    this.pendingCompressedFile = null;
+    this.compressMpq.start(file);
+  }
+
+  setCompressMpqRef = node => {
+    this.compressMpq = node;
+    this.flushPendingCompressedFile();
+  }
+
   onSaveUploaded() {
     this.setState(s => ({savesVersion: s.savesVersion + 1, has_saves: true}));
   }
 
   openSaveManager = () => this.setState({show_saves: true});
   closeSaveManager = () => this.setState({show_saves: false});
-  openCompressor = () => this.setState({compress: true});
-  closeCompressor = () => this.setState({compress: false});
+  openCompressor = () => this.setState({compress: true}, this.flushPendingCompressedFile);
+  closeCompressor = () => {
+    this.pendingCompressedFile = null;
+    this.setState({compress: false});
+  };
 
   getSessionContextValue() {
     const {
@@ -309,6 +381,10 @@ class App extends React.Component {
       multiplayerSessionId,
       multiplayerShareUrl,
       multiplayerNoticeDismissed,
+      touchLayoutPreset,
+      touchPanSensitivity,
+      isTouchDevice,
+      showMobileOnboarding,
     } = this.state;
     return {
       started,
@@ -339,6 +415,13 @@ class App extends React.Component {
       copySessionId: this.copySessionId,
       copyShareLink: this.copyShareLink,
       dismissMultiplayerNotice: this.dismissMultiplayerNotice,
+      touchLayoutPreset,
+      touchPanSensitivity,
+      setTouchLayoutPreset: this.setTouchLayoutPreset,
+      setTouchPanSensitivity: this.setTouchPanSensitivity,
+      isTouchDevice,
+      showMobileOnboarding,
+      dismissMobileOnboarding: this.dismissMobileOnboarding,
     };
   }
 
@@ -494,11 +577,13 @@ class App extends React.Component {
       return <SaveManager/>;
     } else if (compress) {
       return (
-        <CompressMpq
-          onClose={this.closeCompressor}
-          onError={this.onError}
-          ref={e => { this.compressMpq = e; }}
-        />
+        <React.Suspense fallback={<LoadingScreen progress={{text: 'Loading MPQ compressor...'}}/>}>
+          <CompressMpq
+            onClose={this.closeCompressor}
+            onError={this.onError}
+            ref={this.setCompressMpqRef}
+          />
+        </React.Suspense>
       );
     } else if (error) {
       return <ErrorOverlay/>;
@@ -510,11 +595,12 @@ class App extends React.Component {
   }
 
   render() {
-    const {started, error, dropping, updateAvailable} = this.state;
+    const {started, error, dropping, updateAvailable, touchLayoutPreset} = this.state;
     const sessionContextValue = this.getSessionContextValue();
+    const touchPresetClass = `touch-preset-${touchLayoutPreset || DEFAULT_TOUCH_LAYOUT_PRESET}`;
     return (
       <SessionContext.Provider value={sessionContextValue}>
-        <div className={classNames('App', {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
+        <div className={classNames('App', touchPresetClass, {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
           {updateAvailable && (
             <div className="updateBanner" role="status" aria-live="polite" aria-atomic="true">
               A new version is available.{' '}

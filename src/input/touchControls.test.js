@@ -17,6 +17,7 @@ function createApp() {
     touchButton: null,
     touchCanvas: null,
     touchControls: false,
+    state: {touchPanSensitivity: 'normal'},
     element: { classList: { add: jest.fn() } },
     canvas: { offsetHeight: 480 },
   };
@@ -72,5 +73,31 @@ describe('touchControls', () => {
       ['DApi_Mouse', 2, 1, 24, 320, 180],
     ]);
     expect(app.panPos).toEqual({ x: 110, y: 210 });
+  });
+
+  it('uses sensitivity setting when deciding two-finger pan threshold', () => {
+    const lowSensitivityApp = createApp();
+    lowSensitivityApp.state.touchPanSensitivity = 'low';
+    lowSensitivityApp.panPos = {x: 110, y: 210};
+
+    updateTouchButton(lowSensitivityApp, [
+      { target: { id: 'a' }, identifier: 1, clientX: 162, clientY: 210 },
+      { target: { id: 'b' }, identifier: 2, clientX: 158, clientY: 210 },
+    ], false);
+
+    expect(lowSensitivityApp.calls).toEqual([]);
+
+    const highSensitivityApp = createApp();
+    highSensitivityApp.state.touchPanSensitivity = 'high';
+    highSensitivityApp.panPos = {x: 110, y: 210};
+
+    updateTouchButton(highSensitivityApp, [
+      { target: { id: 'a' }, identifier: 1, clientX: 162, clientY: 210 },
+      { target: { id: 'b' }, identifier: 2, clientX: 158, clientY: 210 },
+    ], false);
+
+    expect(highSensitivityApp.calls).toEqual([
+      ['DApi_Key', 0, 0, 37],
+    ]);
   });
 });

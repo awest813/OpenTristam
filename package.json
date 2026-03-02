@@ -74,6 +74,7 @@
     "preview": "vite preview",
     "test": "node scripts/test.js",
     "lint": "eslint src --ext .js,.jsx",
+    "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "deploy": "gh-pages -d build"
   },
   "browserslist": {

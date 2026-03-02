@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_TOUCH_LAYOUT_PRESET, DEFAULT_TOUCH_PAN_SENSITIVITY } from '../preferences';
 
 const noop = () => {};
 
@@ -31,6 +32,13 @@ export const defaultSessionValue = {
   copySessionId: noop,
   copyShareLink: noop,
   dismissMultiplayerNotice: noop,
+  touchLayoutPreset: DEFAULT_TOUCH_LAYOUT_PRESET,
+  touchPanSensitivity: DEFAULT_TOUCH_PAN_SENSITIVITY,
+  setTouchLayoutPreset: noop,
+  setTouchPanSensitivity: noop,
+  isTouchDevice: false,
+  showMobileOnboarding: false,
+  dismissMobileOnboarding: noop,
 };
 
 const SessionContext = React.createContext(defaultSessionValue);

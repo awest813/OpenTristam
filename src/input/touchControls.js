@@ -1,6 +1,17 @@
 export const TOUCH_MOVE = 0;
 export const TOUCH_RMB = 1;
 export const TOUCH_SHIFT = 2;
+export const TOUCH_PAN_SENSITIVITY_DIVISORS = {
+  low: 8,
+  normal: 12,
+  high: 16,
+};
+
+function getPanStep(app) {
+  const sensitivity = (app.state && app.state.touchPanSensitivity) || app.touchPanSensitivity || 'normal';
+  const divisor = TOUCH_PAN_SENSITIVITY_DIVISORS[sensitivity] || TOUCH_PAN_SENSITIVITY_DIVISORS.normal;
+  return app.canvas.offsetHeight / divisor;
+}
 
 export function setTouchMod(app, index, value, use) {
   if (index < 3) {
@@ -77,7 +88,7 @@ export function updateTouchButton(app, touches, release) {
     if (app.panPos) {
       const dx = x - app.panPos.x;
       const dy = y - app.panPos.y;
-      const step = app.canvas.offsetHeight / 12;
+      const step = getPanStep(app);
       if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
         let key;
         if (Math.abs(dx) > Math.abs(dy)) {
