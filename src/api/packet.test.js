@@ -117,7 +117,9 @@ describe('buffer_reader', () => {
     const buffer = new ArrayBuffer(10);
     const reader = new buffer_reader(buffer);
     expect(reader.buffer).toBeInstanceOf(Uint8Array);
+    expect(reader.buffer.buffer).toBe(buffer);
     expect(reader.buffer.byteLength).toBe(10);
+    expect(reader.buffer.length).toBe(10);
     expect(reader.pos).toBe(0);
   });
 
@@ -125,7 +127,9 @@ describe('buffer_reader', () => {
     const buffer = new Uint8Array(10);
     const reader = new buffer_reader(buffer);
     expect(reader.buffer).toBe(buffer);
+    expect(reader.buffer).toBeInstanceOf(Uint8Array);
     expect(reader.buffer.byteLength).toBe(10);
+    expect(reader.buffer.length).toBe(10);
     expect(reader.pos).toBe(0);
   });
 
@@ -133,18 +137,28 @@ describe('buffer_reader', () => {
     const buffer = new Uint8Array(1);
     const reader = new buffer_reader(buffer);
     expect(reader.done()).toBe(false);
+    expect(reader.pos).not.toBe(reader.buffer.byteLength);
     reader.pos = 1;
     expect(reader.done()).toBe(true);
+    expect(reader.pos).toBe(reader.buffer.byteLength);
   });
 
   describe('read8', () => {
     it('reads a byte and advances position', () => {
-      const buffer = new Uint8Array([0x42, 0x13]);
+      const buffer = new Uint8Array([0x42, 0x13, 0xAA, 0x55, 0xFF, 0x00]);
       const reader = new buffer_reader(buffer);
       expect(reader.read8()).toBe(0x42);
       expect(reader.pos).toBe(1);
       expect(reader.read8()).toBe(0x13);
       expect(reader.pos).toBe(2);
+      expect(reader.read8()).toBe(0xAA);
+      expect(reader.pos).toBe(3);
+      expect(reader.read8()).toBe(0x55);
+      expect(reader.pos).toBe(4);
+      expect(reader.read8()).toBe(0xFF);
+      expect(reader.pos).toBe(5);
+      expect(reader.read8()).toBe(0x00);
+      expect(reader.pos).toBe(6);
     });
 
     it('reads complex alternating bit patterns', () => {
@@ -164,10 +178,14 @@ describe('buffer_reader', () => {
 
   describe('read16', () => {
     it('reads a 16-bit integer (little-endian) and advances position', () => {
-      const buffer = new Uint8Array([0x12, 0x34]);
+      const buffer = new Uint8Array([0x12, 0x34, 0xAA, 0x55, 0xFF, 0x00]);
       const reader = new buffer_reader(buffer);
       expect(reader.read16()).toBe(0x3412);
       expect(reader.pos).toBe(2);
+      expect(reader.read16()).toBe(0x55AA);
+      expect(reader.pos).toBe(4);
+      expect(reader.read16()).toBe(0x00FF);
+      expect(reader.pos).toBe(6);
     });
 
     it('reads complex alternating bit patterns', () => {
@@ -185,10 +203,12 @@ describe('buffer_reader', () => {
 
   describe('read32', () => {
     it('reads a 32-bit integer (little-endian) and advances position', () => {
-      const buffer = new Uint8Array([0x12, 0x34, 0x56, 0x78]);
+      const buffer = new Uint8Array([0x12, 0x34, 0x56, 0x78, 0xAA, 0x55, 0xFF, 0x00]);
       const reader = new buffer_reader(buffer);
       expect(reader.read32()).toBe(0x78563412);
       expect(reader.pos).toBe(4);
+      expect(reader.read32()).toBe(0x00FF55AA);
+      expect(reader.pos).toBe(8);
     });
 
     it('reads complex alternating bit patterns', () => {
