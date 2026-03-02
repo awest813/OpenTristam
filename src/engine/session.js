@@ -53,9 +53,9 @@ export function handleGameError(app, message, stack) {
   });
 }
 
-export function handleGameExit(app) {
+export function handleGameExit(app, reloadFn = () => window.location.reload()) {
   if (!app.state.error) {
-    window.location.reload();
+    reloadFn();
   }
 }
 

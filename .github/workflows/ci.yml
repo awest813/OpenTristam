@@ -17,22 +17,19 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
-        # --ignore-scripts avoids native builds (node-sass was replaced by sass).
-        # --legacy-peer-deps is required because sass-loader 9 and peerjs 1.4.7
-        # have peer-dep ranges that npm 7+ rejects without it.
-        run: npm ci --ignore-scripts --legacy-peer-deps
+        # --legacy-peer-deps is required because peerjs 1.4.7 has peer-dep
+        # ranges that npm 7+ rejects without it.
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        run: npm run lint -- --max-warnings 50
 
       - name: Run tests
         run: npm test -- --watchAll=false --ci
 
       - name: Build production bundle
-        # Webpack 4 uses MD4 hashing which was removed from OpenSSL 3's default
-        # provider (shipped with Node 17+). The legacy provider flag restores it.
         run: npm run build
-        env:
-          CI: false
-          NODE_OPTIONS: --openssl-legacy-provider

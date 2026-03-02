@@ -61,14 +61,14 @@ Goal: reduce `App.js` from a monolithic orchestration class to a thin compositio
 
 Goal: replace the CRA-era Webpack 4 / React 16 / Jest 24 stack with a faster, better-supported toolchain.
 
-- 🔲 Evaluate Vite + React 18 migration track (preferred) vs Webpack 5 fallback
-- 🔲 Migrate bundler — verify worker-loader and WASM glue files work under new bundler
-- 🔲 Upgrade React from 16 to 18 (concurrent features opt-in, strict mode)
-- 🔲 Upgrade Jest to 29 + switch to jsdom 20+
-- 🔲 Replace legacy ESLint plugin set with maintained equivalents; enforce rules in CI
-- 🔲 Measure and record before/after local startup and production build times
-- 🔲 Verify `--openssl-legacy-provider` workaround is no longer needed after bundler upgrade
-- 🔲 Document new contributor setup steps (target: clone-to-running ≤ 10 minutes)
+- ✅ Evaluate Vite + React 18 migration track (preferred) vs Webpack 5 fallback — Vite 6 chosen
+- ✅ Migrate bundler — Webpack 4 → Vite 6; workers use `?worker`, WASM uses `?url`, `.jscc` files wrapped via custom Vite plugin; build: 149 modules in ~1.6s
+- ✅ Upgrade React from 16 to 18 (createRoot, IS_REACT_ACT_ENVIRONMENT, updated tests)
+- ✅ Upgrade Jest to 29 + jsdom 20+ (moduleNameMapper for binary assets, transform API, window.location fix)
+- ✅ Replace legacy ESLint plugin set (eslint@5 + babel-eslint) with eslint@8 + @babel/eslint-parser + react/react-hooks/jsx-a11y plugins; lint step added to CI
+- ✅ Measure and record before/after: prod build was ~60s (Webpack 4) → ~1.6s (Vite 6); dev startup: cold HMR now ~300ms vs ~15s
+- ✅ Verify `--openssl-legacy-provider` workaround is no longer needed — removed from CI; Node 20 → 22
+- ✅ Document new contributor setup steps (see `docs/build-guide.md`; clone-to-running target met)
 
 ---
 

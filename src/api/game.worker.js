@@ -1,6 +1,6 @@
-import DiabloBinary from './Diablo.wasm';
+import DiabloBinary from './Diablo.wasm?url';
 import DiabloModule from './Diablo.jscc';
-import SpawnBinary from './DiabloSpawn.wasm';
+import SpawnBinary from './DiabloSpawn.wasm?url';
 import SpawnModule from './DiabloSpawn.jscc';
 import axios from 'axios';
 

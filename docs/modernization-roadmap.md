@@ -6,7 +6,8 @@ This roadmap focuses on practical, low-risk modernization while preserving game 
 
 - **Phase 0:** Complete.
 - **Phase 1:** Complete.
-- **Phase 2:** Planned (next active phase).
+- **Phase 2:** Complete.
+- **Phase 3:** Planned (next active phase).
 - Architecture baseline overview: `docs/architecture-overview.md`.
 - System flow diagrams (boot/lifecycle/handshake/storage): `docs/system-diagrams.md`.
 - ADR template: `docs/adr-template.md`.

@@ -11,6 +11,7 @@ This guide covers everything you need to develop, test, and build DiabloWeb loca
 - [Installing Dependencies](#installing-dependencies)
 - [Development Server](#development-server)
 - [Running Tests](#running-tests)
+- [Linting](#linting)
 - [Production Build](#production-build)
 - [Deploying to GitHub Pages](#deploying-to-github-pages)
 - [Rebuilding the WebAssembly Modules](#rebuilding-the-webassembly-modules)
@@ -23,18 +24,18 @@ This guide covers everything you need to develop, test, and build DiabloWeb loca
 
 | Tool | Required version | Notes |
 |---|---|---|
-| **Node.js** | 20.x (LTS) | Older versions hit OpenSSL compatibility issues with Webpack 4 |
-| **npm** | 9+ (bundled with Node 20) | Do not use Yarn — lockfile is npm-only |
+| **Node.js** | 22.x (LTS) | 20.x also works |
+| **npm** | 10+ (bundled with Node 22) | Do not use Yarn — lockfile is npm-only |
 | **Git** | Any recent version | — |
 
 Check your versions:
 
 ```bash
-node --version   # should print v20.x.x
-npm --version    # should print 9.x or higher
+node --version   # should print v22.x.x
+npm --version    # should print 10.x or higher
 ```
 
-No other system tools are required. The WASM binaries are pre-built and checked into the repo (`src/api/Diablo.jscc`, `src/api/DiabloSpawn.jscc`, `src/mpqcmp/MpqCmp.jscc`).
+No other system tools are required. The WASM binaries are pre-built and checked into the repo (`src/api/Diablo.wasm`, `src/api/DiabloSpawn.wasm`, `src/mpqcmp/MpqCmp.wasm`), along with the Emscripten JS glue files (`*.jscc`).
 
 ---
 
@@ -53,13 +54,13 @@ cd diabloweb
 npm ci --legacy-peer-deps
 ```
 
-**Why these flags?**
+**Why this flag?**
 
-- `--legacy-peer-deps` — `sass-loader@9` and `peerjs@1.4.7` declare peer dependency ranges that don't resolve cleanly under npm 7+. This flag restores the npm 6 resolution behavior and is required.
-- `npm ci` instead of `npm install` — ensures a reproducible install from the lockfile rather than re-resolving ranges.
-- `--ignore-scripts` is used in CI but is not needed locally unless you want to skip optional post-install scripts.
+`--legacy-peer-deps` is required because `peerjs@1.4.7` declares peer-dependency ranges that npm 7+ rejects without it. This flag restores npm 6-era resolution behavior.
 
-The install should complete in under two minutes on a standard connection. There are no native module builds — the old `node-sass` dependency has been replaced with `sass` (Dart Sass).
+`npm ci` ensures a reproducible install from the lockfile rather than re-resolving version ranges.
+
+The install should complete in under two minutes on a standard connection. There are no native module builds.
 
 ---
 
@@ -69,26 +70,30 @@ The install should complete in under two minutes on a standard connection. There
 npm start
 ```
 
-This starts `webpack-dev-server` on **http://localhost:3000** with hot module replacement enabled.
+This starts the **Vite** dev server on **http://localhost:5173** (Vite's default port).
 
 ### Shareware mode (no game files needed)
 
-Place `spawn.mpq` in the `public/` folder before starting the dev server:
+Place `spawn.mpq` in the `public/` folder before starting:
 
 ```bash
 cp /path/to/spawn.mpq public/spawn.mpq
 npm start
 ```
 
-The dev server will serve `spawn.mpq` and the game will load the shareware version automatically. If `spawn.mpq` is absent, the site will attempt to download it from the CDN hosted alongside the live demo.
+The game will load the shareware version automatically. If `spawn.mpq` is absent, the site will attempt to download it from the CDN hosted alongside the live demo.
 
 ### Retail mode
 
-You do not need to place `DIABDAT.MPQ` anywhere on disk. Instead, drag and drop it onto the running browser window. The file is read in-browser and stored in IndexedDB — it never touches your local filesystem through Node.
+Drag and drop `DIABDAT.MPQ` onto the running browser window. The file is read in-browser and stored in IndexedDB — it never touches your local filesystem through Node.
 
 ### Port conflicts
 
-If port 3000 is in use, the dev server auto-selects the next available port and prints the URL to the terminal.
+Set a custom port with the `--port` flag:
+
+```bash
+npx vite --port 3000
+```
 
 ---
 
@@ -120,71 +125,76 @@ Coverage is collected from all files matching `src/**/*.{js,jsx,ts,tsx}`.
 | Packet serialization / multiplayer protocol | `src/api/packet.test.js` |
 | Save-file parsing | `src/api/savefile.test.js` |
 | Sound API | `src/api/sound.test.js` |
+| Error reporter | `src/api/errorReporter.test.js` |
 | Drag-and-drop detection | `src/input/fileDrop.test.js` |
 | File-drop target lifecycle | `src/input/fileDropTarget.test.js` |
 | Event listener lifecycle | `src/input/eventListeners.test.js` |
 | Touch controls | `src/input/touchControls.test.js` |
+| Keyboard handling | `src/input/keyboard.test.js` |
+| Mouse handling | `src/input/mouseHandlers.test.js` |
+| Session lifecycle | `src/engine/session.test.js` |
+| Session context / UI components | `src/ui/sessionContext.test.js` |
 
-Web Worker code and WASM-dependent modules are not unit-tested (they require a real browser environment). Use the dev server for manual testing of the engine, audio, and multiplayer paths.
+Web Worker and WASM-dependent code is not unit-tested (those require a real browser environment). Use the dev server for manual testing.
+
+---
+
+## Linting
+
+```bash
+npm run lint
+```
+
+ESLint 8 with `eslint:recommended`, `plugin:react/recommended`, `plugin:react-hooks/recommended`, and `plugin:jsx-a11y/recommended`. The CI gate allows up to 50 warnings before failing.
+
+To auto-fix safe violations:
+
+```bash
+npm run lint -- --fix
+```
 
 ---
 
 ## Production Build
 
 ```bash
-NODE_OPTIONS=--openssl-legacy-provider npm run build
-```
-
-Or, since `NODE_OPTIONS` is set in the CI workflow:
-
-```bash
-export NODE_OPTIONS=--openssl-legacy-provider
 npm run build
 ```
 
-**Why `--openssl-legacy-provider`?**
+Vite builds a production bundle into `build/`. No special environment flags are needed — the old `NODE_OPTIONS=--openssl-legacy-provider` workaround (required by Webpack 4) is gone.
 
-Webpack 4 uses the MD4 hash algorithm internally, which was removed from OpenSSL 3 (the default in Node 17+). This flag re-enables the legacy OpenSSL provider. This will no longer be needed once the bundler is upgraded to Vite or Webpack 5 (tracked in Phase 2 of the roadmap).
-
-The production bundle is written to `build/`. It includes:
+The production bundle includes:
 
 | Output | Description |
 |---|---|
-| `build/static/js/` | Chunked JS bundles (main + vendor splits) |
-| `build/static/css/` | Minified CSS |
-| `build/service-worker.js` | Workbox-generated PWA service worker |
-| `build/manifest.json` | PWA manifest |
-| `build/index.html` | Entry point with injected script tags |
-| `build/storage.html` | Cross-origin storage migration helper |
+| `build/assets/*.js` | Chunked JS bundles (main + workers split) |
+| `build/assets/*.css` | Minified CSS |
+| `build/assets/*.wasm` | WebAssembly binaries (served as static assets) |
+| `build/index.html` | Main entry point |
+| `build/storage.html` | Cross-origin storage helper (IndexedDB bridge) |
 
-The build script also prints a gzip size report and warns if any bundle exceeds 512 KB.
-
-### Serving the build locally
-
-Any static file server works:
+### Preview the production build locally
 
 ```bash
-npx serve -s build
-# or
-python3 -m http.server 5000 --directory build
+npm run preview
 ```
 
-Open `http://localhost:5000` (or whatever port the server prints).
-
-> **Note:** The app uses a service worker. If you serve from a different port than your dev server, the browser may have a stale service worker cached. Open DevTools → Application → Service Workers → click **Unregister** to clear it.
+Vite starts a local preview server at **http://localhost:4173**.
 
 ---
 
 ## Deploying to GitHub Pages
 
-The `deploy` script uses [gh-pages](https://github.com/tschaub/gh-pages) to push the `build/` directory to the `gh-pages` branch of the repository.
+The `deploy` script uses [gh-pages](https://github.com/tschaub/gh-pages) to push the `build/` directory to the `gh-pages` branch.
 
 ```bash
-npm run build       # build first
-npm run deploy      # push build/ to the gh-pages branch
+npm run build
+npm run deploy
 ```
 
 This requires push access to the repository. The live site at [https://d07RiV.github.io/diabloweb/](https://d07RiV.github.io/diabloweb/) is served from that branch.
+
+The Vite build sets `base: '/diabloweb/'` so all asset paths are rooted correctly under the GitHub Pages sub-path.
 
 ---
 
@@ -192,18 +202,13 @@ This requires push access to the repository. The live site at [https://d07RiV.gi
 
 The pre-built WASM binaries are committed to the repository. You only need to rebuild them if you are modifying the C++ game engine.
 
-The C++ source lives in the separate [d07RiV/devilution](https://github.com/d07RiV/devilution) repository, which is a fork of [diasurgical/devilution](https://github.com/diasurgical/devilution) with modifications to:
-
-- Remove all platform-specific dependencies.
-- Expose the minimal JS-callable interface (`DApi_*` functions).
-- Adapt event handling to an asynchronous, message-passing model.
+The C++ source lives in the separate [d07RiV/devilution](https://github.com/d07RiV/devilution) repository — a fork of [diasurgical/devilution](https://github.com/diasurgical/devilution) with browser-specific adaptations.
 
 ### Build environment
 
 Emscripten is required to compile the C++ source to WebAssembly.
 
 ```bash
-# Install Emscripten SDK (one-time setup)
 git clone https://github.com/emscripten-core/emsdk.git
 cd emsdk
 ./emsdk install latest
@@ -213,55 +218,38 @@ source ./emsdk_env.sh
 
 ### Compile
 
-Follow the build instructions in [d07RiV/devilution](https://github.com/d07RiV/devilution). The output files are:
+Follow the build instructions in [d07RiV/devilution](https://github.com/d07RiV/devilution). The output files map to this repository as:
 
 | Output file | Destination in this repo |
 |---|---|
-| `Diablo.js` / `Diablo.wasm` | Compiled into `src/api/Diablo.jscc` |
-| `DiabloSpawn.js` / `DiabloSpawn.wasm` | Compiled into `src/api/DiabloSpawn.jscc` |
-| `MpqCmp.js` / `MpqCmp.wasm` | Compiled into `src/mpqcmp/MpqCmp.jscc` |
+| `Diablo.js` (Emscripten glue) | `src/api/Diablo.jscc` |
+| `Diablo.wasm` | `src/api/Diablo.wasm` |
+| `DiabloSpawn.js` | `src/api/DiabloSpawn.jscc` |
+| `DiabloSpawn.wasm` | `src/api/DiabloSpawn.wasm` |
+| `MpqCmp.js` | `src/mpqcmp/MpqCmp.jscc` |
+| `MpqCmp.wasm` | `src/mpqcmp/MpqCmp.wasm` |
 
-The `.jscc` extension is the convention used by this project for Emscripten JS-glue files that are imported by `worker-loader`.
+The `.jscc` extension is the convention used in this project for Emscripten JS-glue files. They are wrapped as ES modules by the `jsccPlugin()` in `vite.config.js` and, in the Jest test environment, stubbed via `config/jest/fileMock.js`.
 
-After replacing the `.jscc` files, run `npm run build` and verify the game boots correctly.
+After replacing the files, run `npm run build` and verify the game boots correctly.
 
 ---
 
 ## Environment Variables
 
-The following environment variables affect the build. They are read from the process environment — you can set them in your shell or in a `.env` file at the repo root (dotenv is supported).
+Vite injects environment variables at build time via `define` in `vite.config.js`. You can also use `.env` files at the repo root (Vite loads them automatically).
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `NODE_OPTIONS` | — | Set to `--openssl-legacy-provider` when running Node 17+ with Webpack 4 |
-| `CI` | — | When set to `true`, `npm test` runs without watch mode; the build treats warnings as errors. Set to `false` to suppress warning-as-error behavior during local builds. |
-| `PORT` | `3000` | Dev server port (auto-incremented if in use) |
-| `BROWSER` | `true` | Set to `none` to prevent the dev server from auto-opening a browser tab |
-| `PUBLIC_URL` | `/diabloweb` | Base path injected by Webpack's `DefinePlugin`; matches the `homepage` field in `package.json` |
+| `VITE_*` prefix | — | Any `VITE_`-prefixed variable is exposed to browser code via `import.meta.env.VITE_*` |
+| `NODE_ENV` | `development` / `production` | Set automatically by Vite |
+| `PORT` | `5173` | Dev server port (use `--port` CLI flag or `server.port` in vite.config.js) |
 
-For local development, `CI=false` is the most useful override:
-
-```bash
-CI=false npm run build
-```
-
-This suppresses ESLint warning-as-error behavior and the `CI=true` build-time checks.
+For local development you almost never need to set anything manually.
 
 ---
 
 ## Common Issues
-
-### `Error: error:0308010C:digital envelope routines::unsupported`
-
-**Cause:** Node 17+ with Webpack 4.
-
-**Fix:** Add `NODE_OPTIONS=--openssl-legacy-provider` to your environment or prefix the command:
-
-```bash
-NODE_OPTIONS=--openssl-legacy-provider npm run build
-```
-
----
 
 ### `npm ci` fails with peer dependency errors
 
@@ -275,25 +263,13 @@ npm ci --legacy-peer-deps
 
 ---
 
-### `Cannot find module 'sass'`
-
-**Cause:** The `sass` package is in `devDependencies` and wasn't installed (e.g., `npm ci --production` was used).
-
-**Fix:** Run a full install without the `--production` flag:
-
-```bash
-npm ci --legacy-peer-deps
-```
-
----
-
 ### Blank screen / "Loading…" hangs in dev mode
 
 **Likely causes:**
 
-1. **Missing `spawn.mpq`** — The app is waiting for the shareware data file. Either place `spawn.mpq` in `public/` or drag-drop `DIABDAT.MPQ` onto the page.
+1. **Missing `spawn.mpq`** — Either place it in `public/` or drag-drop `DIABDAT.MPQ` onto the page.
 2. **Stale service worker** — Open DevTools → Application → Service Workers → Unregister, then hard-reload.
-3. **SharedArrayBuffer not available** — Some features require `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers. The dev server sets these; a custom static server may not.
+3. **SharedArrayBuffer not available** — Some features require `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers. The Vite dev server sets these via `server.headers` in `vite.config.js`; a custom static server may not.
 
 ---
 
@@ -301,25 +277,17 @@ npm ci --legacy-peer-deps
 
 **Cause:** Browsers suspend `AudioContext` until a user gesture is detected.
 
-**Fix:** Click or tap anywhere on the page. The game's Web Audio context will resume automatically on the first interaction.
+**Fix:** Click or tap anywhere on the page. The game's Web Audio context resumes on the first interaction.
 
 ---
 
 ### Dev server `EADDRINUSE` (port in use)
 
-The dev server will automatically try the next available port. If you want a specific port:
-
 ```bash
-PORT=4000 npm start
+npx vite --port 4000
 ```
 
----
-
-### Tests fail with `TextEncoder is not defined`
-
-**Cause:** The `jest-environment-jsdom-fourteen` environment doesn't include `TextEncoder` by default in some configurations.
-
-**Fix:** This is handled by `react-app-polyfill/jsdom` in `jest.setupFiles`. If you see this error, ensure the `setupFiles` entry is present in `package.json`'s `jest` config.
+Or set `server.port` in `vite.config.js`.
 
 ---
 
@@ -329,12 +297,11 @@ The `.github/workflows/ci.yml` workflow runs on every push and pull request:
 
 ```
 actions/checkout@v4
-actions/setup-node@v4 (node-version: 20, cache: npm)
-npm ci --ignore-scripts --legacy-peer-deps
+actions/setup-node@v4 (node-version: 22, cache: npm)
+npm ci --legacy-peer-deps
+npm run lint -- --max-warnings 50
 npm test -- --watchAll=false --ci
-npm run build  (with CI=false, NODE_OPTIONS=--openssl-legacy-provider)
+npm run build
 ```
 
-`--ignore-scripts` is used in CI to avoid any post-install native builds. Locally you don't need this flag.
-
-All three steps (install → test → build) must pass before a PR can merge.
+All four steps (install → lint → test → build) must pass before a PR can merge.

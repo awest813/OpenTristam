@@ -1,6 +1,6 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import { act } from 'react-dom/test-utils';
+import { createRoot } from 'react-dom/client';
+import { act } from 'react';
 import SessionContext, { defaultSessionValue } from '../engine/sessionContext';
 import StartScreen from './StartScreen';
 import LoadingScreen from './LoadingScreen';
@@ -9,6 +9,7 @@ import SaveManager from './SaveManager';
 
 describe('session context-backed UI components', () => {
   let container;
+  let root;
 
   const makeSession = overrides => ({
     ...defaultSessionValue,
@@ -18,11 +19,10 @@ describe('session context-backed UI components', () => {
   const renderWithSession = async (ui, sessionOverrides) => {
     const session = makeSession(sessionOverrides);
     await act(async () => {
-      ReactDOM.render(
+      root.render(
         <SessionContext.Provider value={session}>
           {ui}
         </SessionContext.Provider>,
-        container,
       );
       await Promise.resolve();
     });
@@ -32,12 +32,16 @@ describe('session context-backed UI components', () => {
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
+    root = createRoot(container);
   });
 
-  afterEach(() => {
-    ReactDOM.unmountComponentAtNode(container);
+  afterEach(async () => {
+    await act(async () => {
+      root.unmount();
+    });
     container.remove();
     container = null;
+    root = null;
   });
 
   it('StartScreen drives actions from session context', async () => {
