@@ -48,13 +48,14 @@ async function do_websocket_open(url, handler) {
 }
 
 export default function websocket_open(url, handler, finisher) {
-  let ws = null, batch = [], intr = null;
+  let ws = null, batch = [], batchSize = 0, intr = null;
   const proxy = {
     get readyState() {
       return ws ? ws.readyState : 0;
     },
     send(msg) {
       batch.push(msg.slice());
+      batchSize += msg.byteLength;
     },
     close() {
       if (intr) {
@@ -65,6 +66,7 @@ export default function websocket_open(url, handler, finisher) {
         ws.close();
       } else {
         batch = null;
+        batchSize = 0;
       }
     },
   };
@@ -75,12 +77,19 @@ export default function websocket_open(url, handler, finisher) {
         if (!batch.length) {
           return;
         }
-        const header = new Uint8Array(3);
-        header[0] = 0;
-        header[1] = (batch.length & 0xFF);
-        header[2] = batch.length >> 8;
-        ws.send(new Blob([header, ...batch]));
+        const buffer = new Uint8Array(batchSize + 3);
+        buffer[0] = 0;
+        buffer[1] = (batch.length & 0xFF);
+        buffer[2] = batch.length >> 8;
+        let pos = 3;
+        for (let i = 0; i < batch.length; i++) {
+          const msg = batch[i];
+          buffer.set(msg, pos);
+          pos += msg.byteLength;
+        }
+        ws.send(buffer);
         batch.length = 0;
+        batchSize = 0;
       }, 100);
     } else {
       ws.close();
