@@ -27,8 +27,15 @@ export default function MultiplayerStatusBanner(props) {
     return null;
   }
 
+  const isFailure = status === 'failed';
+
   return (
-    <div className={classNames('multiplayerBanner', `multiplayerBanner-${status}`)}>
+    <div
+      className={classNames('multiplayerBanner', `multiplayerBanner-${status}`)}
+      role={isFailure ? 'alert' : 'status'}
+      aria-live={isFailure ? 'assertive' : 'polite'}
+      aria-atomic="true"
+    >
       <div className="multiplayerBanner-main">
         <strong className="multiplayerBanner-title">{statusLabels[status] || status}</strong>
         {category && <span className="multiplayerBanner-category">{category.replace(/_/g, ' ')}</span>}
