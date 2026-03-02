@@ -132,7 +132,14 @@ class App extends React.Component {
       if (spawn && SpawnSizes.includes(spawn.byteLength)) {
         this.setState({has_spawn: true});
       }
-      if ([...fs.files.keys()].filter(name => name.match(/\.sv$/i)).length) {
+      let has_saves = false;
+      for (const name of fs.files.keys()) {
+        if (name.match(/\.sv$/i)) {
+          has_saves = true;
+          break;
+        }
+      }
+      if (has_saves) {
         this.setState({save_names: true});
       }
     });
@@ -241,9 +248,11 @@ class App extends React.Component {
   updateSaves() {
     return this.fs.then(fs => {
       const saves = {};
-      [...fs.files.keys()].filter(name => name.match(/\.sv$/i)).forEach(name => {
-        saves[name] = getPlayerName(fs.files.get(name).buffer, name);
-      });
+      for (const name of fs.files.keys()) {
+        if (name.match(/\.sv$/i)) {
+          saves[name] = getPlayerName(fs.files.get(name).buffer, name);
+        }
+      }
       this.setState({save_names: saves});
     });
   }
