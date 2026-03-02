@@ -481,3 +481,32 @@ body, #root, .App {
     height: 35vw;
   }
 }
+.updateBanner {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(30, 30, 30, 0.95);
+  color: #e8d5a3;
+  border: 1px solid #6b4c1e;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 13px;
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  button {
+    background: #6b4c1e;
+    color: #e8d5a3;
+    border: none;
+    border-radius: 3px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    &:hover {
+      background: #8a6130;
+    }
+  }
+}

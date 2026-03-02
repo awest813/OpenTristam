@@ -12,7 +12,7 @@ export function buildIssueUrl(error, retail) {
 [Please describe what you were doing before the error occurred]
 
 **App version:**
-DiabloWeb ${process.env.VERSION} (${retail ? 'Retail' : 'Shareware'})
+DiabloWeb ${process.env.VERSION || 'unknown'} (${retail ? 'Retail' : 'Shareware'})
 
 **Error message:**
     

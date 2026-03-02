@@ -1,6 +1,10 @@
 import React from 'react';
+import { useSession } from '../engine/sessionContext';
 
-export default function LoadingScreen({ progress }) {
+export default function LoadingScreen({ progress: progressProp }) {
+  const {progress: sessionProgress} = useSession();
+  const progress = progressProp || sessionProgress;
+
   return (
     <div className="loading">
       {(progress && progress.text) || 'Loading...'}

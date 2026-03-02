@@ -35,7 +35,6 @@ describe('handleKeyboardInput', () => {
     return {
       showKeyboard: {left: '10%'},
       keyboard: {
-        value,
         setSelectionRange: jest.fn(),
         get value() { return this._value; },
         set value(v) { this._value = v; },

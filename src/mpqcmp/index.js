@@ -50,7 +50,7 @@ export default class CompressMpq extends React.Component {
       return (
         <div className="start">
           <p>
-            <a href={url} download="DIABDAT.MPQ">Click here if download doesn't start.</a>
+            <a href={url} download="DIABDAT.MPQ">Click here if download doesn&apos;t start.</a>
           </p>
           <div className="startButton" onClick={this.onClose}>Back</div>
         </div>

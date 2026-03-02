@@ -112,11 +112,7 @@ See [ROADMAP.md](ROADMAP.md) for milestone-level planning.
 
 Contributions are welcome.
 
-Before sending a larger PR:
-1. Review [ROADMAP.md](ROADMAP.md) and [docs/modernization-roadmap.md](docs/modernization-roadmap.md).
-2. Open an issue describing scope and approach.
-3. Include tests (or rationale when tests are not practical).
-4. Keep changes focused and incremental where possible.
+Current focus (Phase 2): toolchain and dependency modernization while preserving runtime behavior.
 
 ---
 

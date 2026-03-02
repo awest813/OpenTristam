@@ -1,39 +1,12 @@
-import Worker from './game.worker.js';
+import GameWorker from './game.worker.js?worker';
 import init_sound from './sound';
 import load_spawn from './load_spawn';
 import webrtc_open from './webrtc';
-
-function onRender(api, ctx, {bitmap, images, text, clip, belt}) {
-  if (bitmap) {
-    ctx.transferFromImageBitmap(bitmap);
-  } else {
-    for (let {x, y, w, h, data} of images) {
-      const image = ctx.createImageData(w, h);
-      image.data.set(data);
-      ctx.putImageData(image, x, y);
-    }
-    if (text.length) {
-      ctx.save();
-      ctx.font = 'bold 13px Times New Roman';
-      if (clip) {
-        const {x0, y0, x1, y1} = clip;
-        ctx.beginPath();
-        ctx.rect(x0, y0, x1 - x0, y1 - y0);
-        ctx.clip();
-      }
-      for (let {x, y, text: str, color} of text) {
-        const r = ((color >> 16) & 0xFF);
-        const g = ((color >> 8) & 0xFF);
-        const b = (color & 0xFF);
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-        ctx.fillText(str, x, y + 22);
-      }
-      ctx.restore();
-    }
-  }
-
-  api.updateBelt(belt);
-}
+import { WorkerToMain, MainToWorker } from './workerMessages';
+import { createRenderAdapter } from './renderAdapter';
+import { createAudioAdapter } from './audioAdapter';
+import { createFsAdapter } from './fsAdapter';
+import { createTransportAdapter } from './transportAdapter';
 
 async function do_load_game(api, audio, mpq, spawn) {
   const fs = await api.fs;
@@ -41,94 +14,88 @@ async function do_load_game(api, audio, mpq, spawn) {
     await load_spawn(api, fs);
   }
 
-  const context = api.canvas.getContext("2d", {alpha: false});
+  const audioAdapter = createAudioAdapter(audio);
+  const renderAdapter = createRenderAdapter(api.canvas, belt => api.updateBelt(belt));
+  const fsAdapter = createFsAdapter(fs);
 
   return await new Promise((resolve, reject) => {
     try {
-      const worker = new Worker();
+      const worker = new GameWorker();
 
-      let packetQueue = [];
-      const webrtc = webrtc_open(data => {
-        packetQueue.push(data);
-      });
+      // Transport adapter owns the inbound packet queue and its flush interval.
+      // WebRTC is wired in immediately after creation so the lambda below can
+      // reference the adapter by closure.
+      const transport = createTransportAdapter(worker, null);
+      const webrtc = webrtc_open(data => transport.enqueue(data));
+      transport.setWebRtc(webrtc);
 
-      let packetInterval = setInterval(() => {
-        if (packetQueue.length) {
-          worker.postMessage({action: "packetBatch", batch: packetQueue}, packetQueue);
-          packetQueue.length = 0;
-        }
-      }, 20);
+      let workerTerminated = false;
 
-      const stopInterval = () => {
-        if (packetInterval !== null) {
-          clearInterval(packetInterval);
-          packetInterval = null;
+      const dispose = () => {
+        transport.dispose();
+        if (!workerTerminated) {
+          workerTerminated = true;
+          worker.terminate();
         }
       };
 
-      worker.addEventListener("message", ({data}) => {
+      worker.addEventListener('message', ({data}) => {
         switch (data.action) {
-        case "loaded":
-          resolve((func, ...params) => worker.postMessage({action: "event", func, params}));
+        case WorkerToMain.LOADED:
+          resolve((func, ...params) => worker.postMessage({action: MainToWorker.EVENT, func, params}));
           break;
-        case "render":
-          onRender(api, context, data.batch);
+        case WorkerToMain.RENDER:
+          renderAdapter.handleRender(data.batch);
           break;
-        case "audio":
-          audio[data.func](...data.params);
+        case WorkerToMain.AUDIO:
+          audioAdapter.handleAudio(data);
           break;
-        case "audioBatch":
-          for (let {func, params} of data.batch) {
-            audio[func](...params);
-          }
+        case WorkerToMain.AUDIO_BATCH:
+          audioAdapter.handleAudioBatch(data);
           break;
-        case "fs":
-          fs[data.func](...data.params);
+        case WorkerToMain.FS:
+          fsAdapter.handleFs(data);
           break;
-        case "cursor":
+        case WorkerToMain.CURSOR:
           api.setCursorPos(data.x, data.y);
           break;
-        case "keyboard":
+        case WorkerToMain.KEYBOARD:
           api.openKeyboard(data.rect);
           break;
-        case "error":
-          stopInterval();
-          audio.stop_all();
-          worker.terminate();
+        case WorkerToMain.ERROR:
+          dispose();
+          audioAdapter.dispose();
           api.onError(data.error, data.stack);
           break;
-        case "failed":
-          stopInterval();
-          worker.terminate();
+        case WorkerToMain.FAILED:
+          dispose();
           reject({message: data.error, stack: data.stack});
           break;
-        case "progress":
+        case WorkerToMain.PROGRESS:
           api.onProgress({text: data.text, loaded: data.loaded, total: data.total});
           break;
-        case "exit":
-          stopInterval();
-          worker.terminate();
+        case WorkerToMain.EXIT:
+          dispose();
           api.onExit();
           break;
-        case "current_save":
+        case WorkerToMain.CURRENT_SAVE:
           api.setCurrentSave(data.name);
           break;
-        case "packet":
-          webrtc.send(data.buffer);
+        case WorkerToMain.PACKET:
+          transport.send(data.buffer);
           break;
-        case "packetBatch":
-          for (let packet of data.batch) {
-            webrtc.send(packet);
-          }
+        case WorkerToMain.PACKET_BATCH:
+          transport.sendBatch(data.batch);
           break;
         default:
         }
       });
+
       const transfer = [];
       for (let [, file] of fs.files) {
         transfer.push(file.buffer);
       }
-      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen: false}, transfer);
+      worker.postMessage({action: MainToWorker.INIT, files: fs.files, mpq, spawn, offscreen: renderAdapter.offscreen}, transfer);
       delete fs.files;
     } catch (e) {
       reject(e);

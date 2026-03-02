@@ -1,6 +1,6 @@
-import Worker from './mpqcmp.worker.js';
-import MpqBinary from './MpqCmp.wasm';
-import ListFile from './ListFile.txt';
+import MpqWorker from './mpqcmp.worker.js?worker';
+import MpqBinary from './MpqCmp.wasm?url';
+import ListFile from './ListFile.txt?url';
 import axios from 'axios';
 
 import { decrypt, encrypt, hash, path_name } from '../api/savefile';
@@ -36,7 +36,7 @@ async function loadFile(url, progress, responseType='arraybuffer') {
 function runWorker(data, transfer, progress) {
   return new Promise((resolve, reject) => {
     try {
-      const worker = new Worker();
+      const worker = new MpqWorker();
       worker.addEventListener("message", ({data}) => {
         switch (data.action) {
         case "result":

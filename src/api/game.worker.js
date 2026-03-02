@@ -1,10 +1,11 @@
-import DiabloBinary from './Diablo.wasm';
+import DiabloBinary from './Diablo.wasm?url';
 import DiabloModule from './Diablo.jscc';
-import SpawnBinary from './DiabloSpawn.wasm';
+import SpawnBinary from './DiabloSpawn.wasm?url';
 import SpawnModule from './DiabloSpawn.jscc';
 import axios from 'axios';
 
 import websocket_open from './websocket';
+import { WorkerToMain, MainToWorker } from './workerMessages';
 
 const DiabloSize = 1466809;
 const SpawnSize = 1337416;
@@ -28,7 +29,7 @@ function stopRenderLoop() {
   }
 }
 
-function onError(err, action="error") {
+function onError(err, action = WorkerToMain.ERROR) {
   stopRenderLoop();
   if (err instanceof Error) {
     worker.postMessage({action, error: err.toString(), stack: err.stack});
@@ -97,10 +98,10 @@ const DApi = {
 
   exit_game() {
     stopRenderLoop();
-    worker.postMessage({action: "exit"});
+    worker.postMessage({action: WorkerToMain.EXIT});
   },
   current_save_id(id) {
-    worker.postMessage({action: "current_save", name: id >= 0 ? (is_spawn ? `spawn${id}.sv` : `single_${id}.sv`) : null});
+    worker.postMessage({action: WorkerToMain.CURRENT_SAVE, name: id >= 0 ? (is_spawn ? `spawn${id}.sv` : `single_${id}.sv`) : null});
   },
 
   get_file_size(path) {
@@ -115,26 +116,23 @@ const DApi = {
   },
   put_file_contents(path, array) {
     path = path.toLowerCase();
-    // if (!path.match(/^(spawn\d+\.sv|single_\d+\.sv|config\.ini)$/i)) {
-    //   alert(`Bad file name: ${path}`);
-    // }
     files.set(path, array);
-    worker.postMessage({action: "fs", func: "update", params: [path, array]});
+    worker.postMessage({action: WorkerToMain.FS, func: 'update', params: [path, array]});
   },
   remove_file(path) {
     path = path.toLowerCase();
     files.delete(path);
-    worker.postMessage({action: "fs", func: "delete", params: [path]});
+    worker.postMessage({action: WorkerToMain.FS, func: 'delete', params: [path]});
   },
 
   set_cursor(x, y) {
-    worker.postMessage({action: "cursor", x, y});
+    worker.postMessage({action: WorkerToMain.CURSOR, x, y});
   },
   open_keyboard(...args) {
-    worker.postMessage({action: "keyboard", rect: [...args]});
+    worker.postMessage({action: WorkerToMain.KEYBOARD, rect: [...args]});
   },
   close_keyboard() {
-    worker.postMessage({action: "keyboard", rect: null});
+    worker.postMessage({action: WorkerToMain.KEYBOARD, rect: null});
   },
 
   use_websocket(flag) {
@@ -148,14 +146,14 @@ const DApi = {
             });
           }
         }, code => {
-          if (typeof code !== "number") {
+          if (typeof code !== 'number') {
             throw code;
           } else {
-            call_api("SNet_WebsocketStatus", code);
+            call_api('SNet_WebsocketStatus', code);
           }
         });
       } else {
-        call_api("SNet_WebsocketStatus", 0);
+        call_api('SNet_WebsocketStatus', 0);
       }
     } else {
       if (websocket) {
@@ -168,18 +166,7 @@ const DApi = {
     return websocket ? websocket.readyState !== 1 : false;
   },
 };
-/*
-let frameTime = 0, lastTime = 0;
-function getFPS() {
-  const time = performance.now();
-  if (!lastTime) {
-    lastTime = time;
-  }
-  frameTime = 0.9 * frameTime + 0.1 * (time - lastTime);
-  lastTime = time;
-  return frameTime ? 1000.0 / frameTime : 0.0;
-}
-*/
+
 const DApi_renderLegacy = {
   draw_begin() {
     renderBatch = {
@@ -200,12 +187,11 @@ const DApi_renderLegacy = {
     renderBatch.text.push({x, y, text, color});
   },
   draw_end() {
-    //DApi.draw_text(10, 10, `FPS: ${getFPS().toFixed(1)} (Transfer)`, 0xFFCC00);
     const transfer = renderBatch.images.map(({data}) => data.buffer);
     if (renderBatch.belt) {
       transfer.push(renderBatch.belt.buffer);
     }
-    worker.postMessage({action: "render", batch: renderBatch}, transfer);
+    worker.postMessage({action: WorkerToMain.RENDER, batch: renderBatch}, transfer);
     renderBatch = null;
   },
   draw_belt(items) {
@@ -235,14 +221,13 @@ const DApi_renderOffscreen = {
     context.fillText(text, x, y + 22);
   },
   draw_end() {
-    //DApi.draw_text(10, 10, `FPS: ${getFPS().toFixed(1)} (Offscreen)`, 0xFFCC00);
     context.restore();
     const bitmap = canvas.transferToImageBitmap();
     const transfer = [bitmap];
     if (drawBelt) {
       transfer.push(drawBelt.buffer);
     }
-    worker.postMessage({action: "render", batch: {bitmap, belt: drawBelt}}, transfer);
+    worker.postMessage({action: WorkerToMain.RENDER, batch: {bitmap, belt: drawBelt}}, transfer);
     drawBelt = null;
   },
   draw_belt(items) {
@@ -252,32 +237,32 @@ const DApi_renderOffscreen = {
 
 let audioBatch = null, audioTransfer = null;
 let maxSoundId = 0, maxBatchId = 0;
-["create_sound_raw", "create_sound", "duplicate_sound"].forEach(func => {
+['create_sound_raw', 'create_sound', 'duplicate_sound'].forEach(func => {
   DApi[func] = function(...params) {
     if (audioBatch) {
       maxBatchId = params[0] + 1;
       audioBatch.push({func, params});
-      if (func !== "duplicate_sound") {
+      if (func !== 'duplicate_sound') {
         audioTransfer.push(params[1].buffer);
       }
     } else {
       maxSoundId = params[0] + 1;
       const transfer = [];
-      if (func !== "duplicate_sound") {
+      if (func !== 'duplicate_sound') {
         transfer.push(params[1].buffer);
       }
-      worker.postMessage({action: "audio", func, params}, transfer);
+      worker.postMessage({action: WorkerToMain.AUDIO, func, params}, transfer);
     }
   };
 });
-["play_sound", "set_volume", "stop_sound", "delete_sound"].forEach(func => {
+['play_sound', 'set_volume', 'stop_sound', 'delete_sound'].forEach(func => {
   DApi[func] = function(...params) {
     if (audioBatch && params[0] >= maxSoundId) {
       audioBatch.push({func, params});
     } else {
-      worker.postMessage({action: "audio", func, params});
+      worker.postMessage({action: WorkerToMain.AUDIO, func, params});
     }
-  }
+  };
 });
 
 let packetBatch = null;
@@ -287,7 +272,7 @@ DApi.websocket_send = function(data) {
   } else if (packetBatch) {
     packetBatch.push(data.slice().buffer);
   } else {
-    worker.postMessage({action: "packet", buffer: data});
+    worker.postMessage({action: WorkerToMain.PACKET, buffer: data});
   }
 };
 
@@ -311,8 +296,8 @@ function call_api(func, ...params) {
       audioTransfer = [];
       packetBatch = [];
     }
-    if (func !== "text") {
-      wasm["_" + func](...params);
+    if (func !== 'text') {
+      wasm['_' + func](...params);
     } else {
       const ptr = wasm._DApi_SyncTextPtr();
       const text = params[0];
@@ -327,10 +312,10 @@ function call_api(func, ...params) {
     if (!nested) {
       if (audioBatch.length) {
         maxSoundId = maxBatchId;
-        worker.postMessage({action: "audioBatch", batch: audioBatch}, audioTransfer);
+        worker.postMessage({action: WorkerToMain.AUDIO_BATCH, batch: audioBatch}, audioTransfer);
       }
       if (packetBatch.length) {
-        worker.postMessage({action: "packetBatch", batch: packetBatch}, packetBatch);
+        worker.postMessage({action: WorkerToMain.PACKET_BATCH, batch: packetBatch}, packetBatch);
       }
       audioBatch = null;
       audioTransfer = null;
@@ -340,33 +325,33 @@ function call_api(func, ...params) {
 }
 
 function progress(text, loaded, total) {
-  worker.postMessage({action: "progress", text, loaded, total});
+  worker.postMessage({action: WorkerToMain.PROGRESS, text, loaded, total});
 }
 
-const readFile = (file, progress) => new Promise((resolve, reject) => {
+const readFile = (file, progressCb) => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = () => {
-    if (progress) {
-      progress({loaded: file.size});
+    if (progressCb) {
+      progressCb({loaded: file.size});
     }
     resolve(reader.result);
   };
   reader.onerror = () => reject(reader.error);
   reader.onabort = () => reject();
-  if (progress) {
-    reader.addEventListener("progress", progress);
+  if (progressCb) {
+    reader.addEventListener('progress', progressCb);
   }
   reader.readAsArrayBuffer(file);
 });
 
-async function initWasm(spawn, progress) {
+async function initWasm(spawn, progressCb) {
   const binary = await axios.request({
     url: spawn ? SpawnBinary : DiabloBinary,
     responseType: 'arraybuffer',
-    onDownloadProgress: progress,
+    onDownloadProgress: progressCb,
   });
   const result = await (spawn ? SpawnModule : DiabloModule)({wasmBinary: binary.data}).ready;
-  progress({loaded: 2000000});
+  progressCb({loaded: 2000000});
   return result;
 }
 
@@ -374,7 +359,7 @@ async function init_game(mpq, spawn, offscreen) {
   is_spawn = spawn;
   if (offscreen) {
     canvas = new OffscreenCanvas(640, 480);
-    context = canvas.getContext("2d");
+    context = canvas.getContext('2d');
     imageData = context.createImageData(640, 480);
     Object.assign(DApi, DApi_renderOffscreen);
   } else {
@@ -389,11 +374,11 @@ async function init_game(mpq, spawn, offscreen) {
     }
   }
 
-  progress("Loading...");
+  progress('Loading...');
   let mpqLoaded = 0, mpqTotal = (mpq ? mpq.size : 0), wasmLoaded = 0, wasmTotal = (spawn ? SpawnSize : DiabloSize);
   const wasmWeight = 5;
   function updateProgress() {
-    progress("Loading...", mpqLoaded + wasmLoaded * wasmWeight, mpqTotal + wasmTotal * wasmWeight);
+    progress('Loading...', mpqLoaded + wasmLoaded * wasmWeight, mpqTotal + wasmTotal * wasmWeight);
   }
   const loadWasm = initWasm(spawn, e => {
     wasmLoaded = Math.min(e.loaded, wasmTotal);
@@ -409,36 +394,35 @@ async function init_game(mpq, spawn, offscreen) {
     files.set(spawn ? 'spawn.mpq' : 'diabdat.mpq', new Uint8Array(mpq));
   }
 
-  progress("Initializing...");
+  progress('Initializing...');
 
   const vers = process.env.VERSION.match(/(\d+)\.(\d+)\.(\d+)/);
 
-  //wasm._SNet_InitWebsocket();
   wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0, parseInt(vers[1]), parseInt(vers[2]), parseInt(vers[3]));
 
   renderInterval = setInterval(() => {
-    call_api("DApi_Render", Math.floor(performance.now()));
+    call_api('DApi_Render', Math.floor(performance.now()));
   }, 50);
 }
 
-worker.addEventListener("message", ({data}) => {
+worker.addEventListener('message', ({data}) => {
   switch (data.action) {
-  case "init":
+  case MainToWorker.INIT:
     files = data.files;
     init_game(data.mpq, data.spawn, data.offscreen).then(
-      () => worker.postMessage({action: "loaded"}),
-      e => onError(e, "failed"));
+      () => worker.postMessage({action: WorkerToMain.LOADED}),
+      e => onError(e, WorkerToMain.FAILED));
     break;
-  case "event":
+  case MainToWorker.EVENT:
     call_api(data.func, ...data.params);
     break;
-  case "packet":
+  case MainToWorker.PACKET:
     try_api(() => {
       const ptr = wasm._DApi_AllocPacket(data.buffer.byteLength);
       wasm.HEAPU8.set(new Uint8Array(data.buffer), ptr);
     });
     break;
-  case "packetBatch":
+  case MainToWorker.PACKET_BATCH:
     try_api(() => {
       for (let packet of data.batch) {
         const ptr = wasm._DApi_AllocPacket(packet.byteLength);

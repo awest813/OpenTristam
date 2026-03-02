@@ -1,13 +1,15 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import './reset.css';
 import * as serviceWorker from './serviceWorker';
 
 import App from './App';
 
-ReactDOM.render(<App />, document.getElementById('root'));
+const root = createRoot(document.getElementById('root'));
+root.render(<App />);
 
 serviceWorker.register({
   onUpdate() {
+    window.dispatchEvent(new CustomEvent('swUpdate'));
   },
 });

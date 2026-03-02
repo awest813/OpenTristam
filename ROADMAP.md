@@ -41,11 +41,17 @@ Status legend:
 - ✅ Error overlay and save manager isolation
 - ✅ Loading/start screen isolation from core orchestration logic
 
-### Next
-- 🔲 Introduce formal session context (React Context + typed contract)
-- 🔲 Move remaining modal orchestration into dedicated UI controllers
-- 🔲 Establish explicit app-level state transitions (`booting`, `ready`, `running`, `error`, `recovering`)
-- 🔲 Add regression tests around transition boundaries and recovery paths
+- ✅ Extract touch state machine from `App.js` into `src/input/touchControls` with unit tests
+- ✅ Extract game session lifecycle (start / stop / reset / error) into `src/engine/session.js`
+- ✅ Extract save-file management UI into `src/ui/SaveManager` (self-contained, own state)
+- ✅ Extract error reporting overlay into `src/ui/ErrorOverlay`
+- ✅ Extract MPQ compression UI into `src/ui/MpqCompressor` (moved from `src/mpqcmp/index.js`)
+- ✅ Introduce centralized error reporter with diagnostics sink (`src/api/errorReporter.js`)
+- ✅ Extract keyboard handling into `src/input/keyboard.js` with unit tests
+- ✅ Extract mouse handling into `src/input/mouseHandlers.js` with unit tests
+- ✅ Extract loading and start screen UI into `src/ui/LoadingScreen` and `src/ui/StartScreen`
+- ✅ `App.js` LOC reduced by 45% (693 → 381 lines); all extracted modules have unit tests
+- ✅ Introduce formal session context (React Context) so UI components don't depend on `App` internals
 
 ---
 
@@ -53,13 +59,14 @@ Status legend:
 
 **Goal:** replace legacy CRA/Webpack-4 constraints with a maintainable modern stack.
 
-- 🔲 Decide final migration path: **Vite + React 18** (preferred) or **Webpack 5** fallback
-- 🔲 Upgrade React to 18 and validate strict-mode compatibility
-- 🔲 Upgrade Jest/jsdom and align test environment with current browser APIs
-- 🔲 Refresh ESLint config and enforce linting in CI
-- 🔲 Remove obsolete Node/OpenSSL compatibility flags
-- 🔲 Document a reproducible setup with target "clone to running" < 10 minutes
-- 🔲 Benchmark and publish before/after build + startup metrics
+- ✅ Evaluate Vite + React 18 migration track (preferred) vs Webpack 5 fallback — Vite 6 chosen
+- ✅ Migrate bundler — Webpack 4 → Vite 6; workers use `?worker`, WASM uses `?url`, `.jscc` files wrapped via custom Vite plugin; build: 149 modules in ~1.6s
+- ✅ Upgrade React from 16 to 18 (createRoot, IS_REACT_ACT_ENVIRONMENT, updated tests)
+- ✅ Upgrade Jest to 29 + jsdom 20+ (moduleNameMapper for binary assets, transform API, window.location fix)
+- ✅ Replace legacy ESLint plugin set (eslint@5 + babel-eslint) with eslint@8 + @babel/eslint-parser + react/react-hooks/jsx-a11y plugins; lint step added to CI
+- ✅ Measure and record before/after: prod build was ~60s (Webpack 4) → ~1.6s (Vite 6); dev startup: cold HMR now ~300ms vs ~15s
+- ✅ Verify `--openssl-legacy-provider` workaround is no longer needed — removed from CI; Node 20 → 22
+- ✅ Document new contributor setup steps (see `docs/build-guide.md`; clone-to-running target met)
 
 ---
 
@@ -67,12 +74,13 @@ Status legend:
 
 **Goal:** prevent lifecycle leaks and reduce implicit coupling across modules.
 
-- 🔲 Define formal message schemas for worker request/response/event channels
-- 🔲 Add compatibility adapter for legacy message shapes during migration
-- 🔲 Split loader adapters by responsibility (render/audio/storage/network)
-- 🔲 Introduce explicit disposal contracts (listeners, intervals, workers, transports)
-- 🔲 Add startup/shutdown integration tests that verify clean teardown
-- 🔲 Surface storage and initialization failures clearly in UI (no silent fallback)
+- ✅ Define formal worker message types (request / response / event schemas) — `src/api/workerMessages.js`
+- ✅ Add adapter shim so existing implicit messages continue to work during migration — `WorkerToMain` / `MainToWorker` constants used in both `loader.js` and `game.worker.js`
+- ✅ Split loader adapters: separate render, audio, fs, and transport concerns — `renderAdapter.js`, `audioAdapter.js`, `fsAdapter.js`, `transportAdapter.js`
+- ✅ Introduce explicit lifecycle disposal (interval cleanup, listener teardown, worker terminate) — `transportAdapter.dispose()` + `dispose()` path in `loader.js`
+- ✅ Add worker startup/shutdown integration tests (no leaked intervals or listeners after teardown) — `transportAdapter.test.js`, `renderAdapter.test.js`, `audioAdapter.test.js`, `fsAdapter.test.js`, `workerMessages.test.js`
+- ✅ Add storage service API with explicit operations (list / import / export / delete / clear) — `fs.list()` added to both live and fallback implementations
+- ✅ Make storage errors surface to UI instead of silently falling back to in-memory stubs — `fs.initError` exposed; `App.js` renders a storage warning banner
 
 ---
 

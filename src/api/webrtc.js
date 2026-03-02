@@ -28,7 +28,6 @@ class webrtc_server {
       this.peer.off('open', onOpen);
     };
     const onOpen = () => {
-      //console.log('peer open');
       setTimeout(() => {
         onMessage(write_packet(server_packet.join_accept, {cookie, index: 0, seed: this.seed, difficulty}));
         onMessage(write_packet(server_packet.connect, {id: 0}));
@@ -38,13 +37,9 @@ class webrtc_server {
     };
     this.peer.on('error', onError);
     this.peer.on('open', onOpen);
-
-    //this.peer.on('error', err => console.log('peer error:', err));
   }
 
   onConnect(conn) {
-    //conn.on('error', err => console.log('conn error:', err));
-    //console.log('conn open');
     const peer = {conn};
     conn.on('data', packet => {
       const reader = new buffer_reader(packet);
@@ -87,7 +82,6 @@ class webrtc_server {
       }
     });
     conn.on('close', () => {
-      //console.log('conn close');
       if (peer.id != null) {
         this.drop(peer.id, 0x40000006);
       }
@@ -182,9 +176,6 @@ class webrtc_client {
     this.peer.on('error', onError);
     this.conn.on('error', onError);
     this.conn.on('open', onOpen);
-
-    //this.peer.on('error', err => console.log('peer error:', err));
-    //this.conn.on('error', err => console.log('conn error:', err));
 
     this.conn.on('data', data => {
       unreg();

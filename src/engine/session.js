@@ -48,12 +48,14 @@ export function handleGameError(app, message, stack) {
     } else {
       app.setState(({error}) => !error && {error: errorObject});
     }
-  })();
+  })().catch(() => {
+    app.setState(({error}) => !error && {error: {message}});
+  });
 }
 
-export function handleGameExit(app) {
+export function handleGameExit(app, reloadFn = () => window.location.reload()) {
   if (!app.state.error) {
-    window.location.reload();
+    reloadFn();
   }
 }
 
