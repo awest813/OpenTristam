@@ -108,5 +108,11 @@ describe('buffer_reader', () => {
       const reader = new buffer_reader(new Uint8Array([3, 0, 0])); // Only 3 bytes for size
       expect(() => reader.read_buf()).toThrow('packet too small');
     });
+
+    it('throws error if buffer data is incomplete', () => {
+      const buffer = new Uint8Array([5, 0, 0, 0, 10, 20]); // Length 5, but only 2 bytes of data
+      const reader = new buffer_reader(buffer);
+      expect(() => reader.read_buf()).toThrow('packet too small');
+    });
   });
 });
