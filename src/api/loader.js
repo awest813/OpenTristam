@@ -1,12 +1,12 @@
 import GameWorker from './game.worker.js?worker';
 import init_sound from './sound';
 import load_spawn from './load_spawn';
-import webrtc_open from './webrtc';
 import { WorkerToMain, MainToWorker } from './workerMessages';
 import { createRenderAdapter } from './renderAdapter';
 import { createAudioAdapter } from './audioAdapter';
 import { createFsAdapter } from './fsAdapter';
 import { createTransportAdapter } from './transportAdapter';
+import { createTransport } from './transports';
 
 async function do_load_game(api, audio, mpq, spawn) {
   const fs = await api.fs;
@@ -26,13 +26,14 @@ async function do_load_game(api, audio, mpq, spawn) {
       // WebRTC is wired in immediately after creation so the lambda below can
       // reference the adapter by closure.
       const transport = createTransportAdapter(worker, null);
-      const webrtc = webrtc_open(data => transport.enqueue(data));
-      transport.setWebRtc(webrtc);
+      const multiplayerTransport = createTransport({}, data => transport.enqueue(data));
+      transport.setTransport(multiplayerTransport);
 
       let workerTerminated = false;
 
       const dispose = () => {
         transport.dispose();
+        multiplayerTransport.dispose();
         if (!workerTerminated) {
           workerTerminated = true;
           worker.terminate();

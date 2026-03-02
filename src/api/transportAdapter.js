@@ -15,18 +15,19 @@ import { MainToWorker } from './workerMessages';
 
 /**
  * @param {Worker}  worker  The GameWorker instance to send batched packets to.
- * @param {object}  webrtc  The WebRTC session object (must have a .send() method).
- *                          May be set later via setWebRtc() if not available at
+ * @param {object}  transport  The transport object (must have a .send() method).
+ *                             May be set later via setTransport() if not available at
  *                          construction time.
  * @returns {{
  *   enqueue: function,
+ *   setTransport: function,
  *   setWebRtc: function,
  *   send: function,
  *   sendBatch: function,
  *   dispose: function,
  * }}
  */
-export function createTransportAdapter(worker, webrtc) {
+export function createTransportAdapter(worker, transport) {
   let queue = [];
   let flushIntervalId = setInterval(() => {
     if (queue.length) {
@@ -42,23 +43,28 @@ export function createTransportAdapter(worker, webrtc) {
       queue.push(data);
     },
 
-    /** Inject or replace the WebRTC session after construction. */
+    /** Inject or replace the transport session after construction. */
+    setTransport(nextTransport) {
+      transport = nextTransport;
+    },
+
+    /** @deprecated Use setTransport() instead. */
     setWebRtc(w) {
-      webrtc = w;
+      transport = w;
     },
 
     /** Forward a single outbound packet from the worker to the WebRTC peer. */
     send(buffer) {
-      if (webrtc) {
-        webrtc.send(buffer);
+      if (transport) {
+        transport.send(buffer);
       }
     },
 
     /** Forward a batch of outbound packets from the worker to the WebRTC peer. */
     sendBatch(batch) {
-      if (webrtc) {
+      if (transport) {
         for (const packet of batch) {
-          webrtc.send(packet);
+          transport.send(packet);
         }
       }
     },

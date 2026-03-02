@@ -88,7 +88,7 @@ Status legend:
 
 **Goal:** make multiplayer failures diagnosable and recoverable by users.
 
-- 🔲 Introduce transport abstraction (`Transport` interface with PeerJS/WebSocket adapters)
+- ✅ Introduce transport abstraction (`Transport` interface with PeerJS/WebSocket adapters) — `src/api/transports/index.js`, `peerjsTransport.js`, `websocketTransport.js`
 - 🔲 Add structured connection lifecycle logging and error categorization
 - 🔲 Expose connection status in UI (`connecting`, `connected`, `retrying`, `failed`)
 - 🔲 Add guided recovery actions (retry, reconnect, copy session ID, share link)

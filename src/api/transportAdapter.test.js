@@ -129,12 +129,12 @@ describe('createTransportAdapter — send / sendBatch', () => {
 
 // ─── setWebRtc ───────────────────────────────────────────────────────────────
 
-describe('createTransportAdapter — setWebRtc', () => {
-  it('send() uses a webrtc instance injected after construction', () => {
+describe('createTransportAdapter — setTransport', () => {
+  it('send() uses a transport instance injected after construction', () => {
     const webrtc = makeWebRtc();
     const adapter = createTransportAdapter(makeWorker(), null);
 
-    adapter.setWebRtc(webrtc);
+    adapter.setTransport(webrtc);
     adapter.send(new Uint8Array([42]));
 
     expect(webrtc.send).toHaveBeenCalledTimes(1);
