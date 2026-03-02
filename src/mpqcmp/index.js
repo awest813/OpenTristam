@@ -27,16 +27,15 @@ export default class CompressMpq extends React.Component {
     document.body.removeChild(lnk);
   }
   onError(message, stack) {
-    const { api } = this.props;
-    api.setState({compress: false});
-    api.onError(message, stack);
+    this.props.onClose();
+    this.props.onError(message, stack);
   }
 
   onClose = () => {
     if (this.state.url) {
       URL.revokeObjectURL(this.state.url);
     }
-    this.props.api.setState({compress: false});
+    this.props.onClose();
   }
 
   start(file) {

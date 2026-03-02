@@ -33,9 +33,9 @@ Goal: establish CI, documentation, and minimum test coverage before any structur
 - ✅ Extract event listener lifecycle into `src/input/eventListeners.js`
 - ✅ Extract file-drop target lifecycle into `src/input/fileDropTarget.js`
 - ✅ Unit tests for all extracted input modules
-- 🔄 README overhaul (this PR)
-- 🔄 Build guide (`docs/build-guide.md`)
-- 🔄 Root roadmap (`ROADMAP.md`)
+- ✅ README overhaul
+- ✅ Build guide (`docs/build-guide.md`)
+- ✅ Root roadmap (`ROADMAP.md`)
 
 ---
 
@@ -43,14 +43,17 @@ Goal: establish CI, documentation, and minimum test coverage before any structur
 
 Goal: reduce `App.js` from a monolithic orchestration class to a thin composition shell.
 
-- 🔲 Extract touch state machine from `App.js` into `src/input/touchControls` with unit tests
-- 🔲 Extract game session lifecycle (start / stop / reset / error) into `src/engine/session.js`
-- 🔲 Introduce session context so UI components don't depend on `App` internals
-- 🔲 Extract save-file management UI into `src/ui/SaveManager`
-- 🔲 Extract error reporting overlay into `src/ui/ErrorOverlay`
-- 🔲 Extract MPQ compression UI into `src/ui/MpqCompressor` (currently `src/mpqcmp/index.js`)
-- 🔲 Introduce centralized error reporter with diagnostics sink (stack traces + GitHub issue link generation)
-- 🔲 `App.js` LOC reduced by 40%+; input and engine flows have unit tests
+- ✅ Extract touch state machine from `App.js` into `src/input/touchControls` with unit tests
+- ✅ Extract game session lifecycle (start / stop / reset / error) into `src/engine/session.js`
+- ✅ Extract save-file management UI into `src/ui/SaveManager` (self-contained, own state)
+- ✅ Extract error reporting overlay into `src/ui/ErrorOverlay`
+- ✅ Extract MPQ compression UI into `src/ui/MpqCompressor` (moved from `src/mpqcmp/index.js`)
+- ✅ Introduce centralized error reporter with diagnostics sink (`src/api/errorReporter.js`)
+- ✅ Extract keyboard handling into `src/input/keyboard.js` with unit tests
+- ✅ Extract mouse handling into `src/input/mouseHandlers.js` with unit tests
+- ✅ Extract loading and start screen UI into `src/ui/LoadingScreen` and `src/ui/StartScreen`
+- ✅ `App.js` LOC reduced by 45% (693 → 381 lines); all extracted modules have unit tests
+- 🔲 Introduce formal session context (React Context) so UI components don't depend on `App` internals
 
 ---
 
