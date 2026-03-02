@@ -75,17 +75,11 @@ export default function websocket_open(url, handler, finisher) {
         if (!batch.length) {
           return;
         }
-        const size = batch.reduce((sum, msg) => sum + msg.byteLength, 3);
-        const buffer = new Uint8Array(size);
-        buffer[0] = 0;
-        buffer[1] = (batch.length & 0xFF);
-        buffer[2] = batch.length >> 8;
-        let pos = 3;
-        for (let msg of batch) {
-          buffer.set(msg, pos);
-          pos += msg.byteLength;
-        }
-        ws.send(buffer);
+        const header = new Uint8Array(3);
+        header[0] = 0;
+        header[1] = (batch.length & 0xFF);
+        header[2] = batch.length >> 8;
+        ws.send(new Blob([header, ...batch]));
         batch.length = 0;
       }, 100);
     } else {
