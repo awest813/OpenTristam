@@ -19,8 +19,17 @@ let renderBatch = null;
 let drawBelt = null;
 let is_spawn = false;
 let websocket = null;
+let renderInterval = null;
+
+function stopRenderLoop() {
+  if (renderInterval !== null) {
+    clearInterval(renderInterval);
+    renderInterval = null;
+  }
+}
 
 function onError(err, action="error") {
+  stopRenderLoop();
   if (err instanceof Error) {
     worker.postMessage({action, error: err.toString(), stack: err.stack});
   } else {
@@ -87,6 +96,7 @@ const DApi = {
   },
 
   exit_game() {
+    stopRenderLoop();
     worker.postMessage({action: "exit"});
   },
   current_save_id(id) {
@@ -406,8 +416,8 @@ async function init_game(mpq, spawn, offscreen) {
   //wasm._SNet_InitWebsocket();
   wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0, parseInt(vers[1]), parseInt(vers[2]), parseInt(vers[3]));
 
-  setInterval(() => {
-    call_api("DApi_Render", Math.floor(performance.now()));  
+  renderInterval = setInterval(() => {
+    call_api("DApi_Render", Math.floor(performance.now()));
   }, 50);
 }
 

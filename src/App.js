@@ -149,7 +149,7 @@ class App extends React.Component {
     const file = getDropFile(e);
     if (file) {
       e.preventDefault();
-      if (this.compressMpq) {
+      if (this.compressMpq && !file.name.match(/\.sv$/i)) {
         this.compressMpq.start(file);
       } else {
         this.start(file);

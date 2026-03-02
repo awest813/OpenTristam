@@ -229,7 +229,7 @@ function DecodeLit(pWork) {
     if(extra_length_bits !== 0) {
       const extra_length = pWork.bit_buff & ((1 << extra_length_bits) - 1);
       if(WasteBits(pWork, extra_length_bits)) {
-        if((length_code + extra_length) != 0x10E) {
+        if((length_code + extra_length) !== 0x10E) {
           return 0x306;
         }
       }
@@ -261,7 +261,7 @@ function DecodeLit(pWork) {
   if (pWork.bit_buff & 0xFF) {
     value = pWork.offs2C34[pWork.bit_buff & 0xFF];
 
-    if (value == 0xFF) {
+    if (value === 0xFF) {
       if (pWork.bit_buff & 0x3F) {
         if (WasteBits(pWork, 4)) {
           return 0x306;
@@ -418,8 +418,8 @@ export function explode(read_buf, write_buf) {
 
   pWork.dsize_mask = 0xFFFF >> (0x10 - pWork.dsize_bits); // Shifted by 'sar' instruction
 
-  if(pWork.ctype != CMP_BINARY) {
-    if(pWork.ctype != CMP_ASCII) {
+  if(pWork.ctype !== CMP_BINARY) {
+    if(pWork.ctype !== CMP_ASCII) {
       return CMP_INVALID_MODE;
     }
 

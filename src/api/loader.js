@@ -94,10 +94,12 @@ async function do_load_game(api, audio, mpq, spawn) {
         case "error":
           stopInterval();
           audio.stop_all();
+          worker.terminate();
           api.onError(data.error, data.stack);
           break;
         case "failed":
           stopInterval();
+          worker.terminate();
           reject({message: data.error, stack: data.stack});
           break;
         case "progress":
@@ -105,6 +107,7 @@ async function do_load_game(api, audio, mpq, spawn) {
           break;
         case "exit":
           stopInterval();
+          worker.terminate();
           api.onExit();
           break;
         case "current_save":

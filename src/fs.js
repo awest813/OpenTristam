@@ -47,15 +47,6 @@ async function downloadFile(store, name) {
   }
 }
 
-async function downloadSaves(store) {
-  const keys = await store.keys();
-  for (let name of keys) {
-    if (name.match(/\.sv$/i)) {
-      downloadFile(store, name);
-    }
-  }
-}
-
 const readFile = file => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = () => resolve(reader.result);
