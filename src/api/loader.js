@@ -35,13 +35,32 @@ function onRender(api, ctx, {bitmap, images, text, clip, belt}) {
   api.updateBelt(belt);
 }
 
+// Detect OffscreenCanvas + transferToImageBitmap support. When available the
+// worker renders into its own OffscreenCanvas and ships a finished ImageBitmap
+// to the main thread — no raw pixel copy needed.
+function supportsOffscreen() {
+  try {
+    return (
+      typeof OffscreenCanvas !== 'undefined' &&
+      typeof OffscreenCanvas.prototype.transferToImageBitmap === 'function'
+    );
+  } catch (e) {
+    return false;
+  }
+}
+
 async function do_load_game(api, audio, mpq, spawn) {
   const fs = await api.fs;
   if (spawn && !mpq) {
     await load_spawn(api, fs);
   }
 
-  const context = api.canvas.getContext("2d", {alpha: false});
+  const offscreen = supportsOffscreen();
+  // Use "bitmaprenderer" when the worker will ship ImageBitmap frames;
+  // fall back to a plain 2d context for the legacy pixel-copy path.
+  const context = offscreen
+    ? api.canvas.getContext("bitmaprenderer")
+    : api.canvas.getContext("2d", {alpha: false});
 
   return await new Promise((resolve, reject) => {
     try {
@@ -128,7 +147,7 @@ async function do_load_game(api, audio, mpq, spawn) {
       for (let [, file] of fs.files) {
         transfer.push(file.buffer);
       }
-      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen: false}, transfer);
+      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen}, transfer);
       delete fs.files;
     } catch (e) {
       reject(e);
