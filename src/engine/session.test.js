@@ -3,32 +3,18 @@ import { handleGameExit, handleProgress, setCurrentSave, setCursorPos } from './
 // ─── handleGameExit ──────────────────────────────────────────────────────────
 
 describe('handleGameExit', () => {
-  const originalReload = window.location.reload;
-
-  beforeEach(() => {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: {reload: jest.fn()},
-    });
-  });
-
-  afterEach(() => {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: {reload: originalReload},
-    });
-  });
-
-  it('calls location.reload() when there is no error', () => {
+  it('calls the reload function when there is no error', () => {
+    const reloadFn = jest.fn();
     const app = {state: {error: null}};
-    handleGameExit(app);
-    expect(window.location.reload).toHaveBeenCalledTimes(1);
+    handleGameExit(app, reloadFn);
+    expect(reloadFn).toHaveBeenCalledTimes(1);
   });
 
-  it('does not reload when an error is already set', () => {
+  it('does not call the reload function when an error is already set', () => {
+    const reloadFn = jest.fn();
     const app = {state: {error: {message: 'already errored'}}};
-    handleGameExit(app);
-    expect(window.location.reload).not.toHaveBeenCalled();
+    handleGameExit(app, reloadFn);
+    expect(reloadFn).not.toHaveBeenCalled();
   });
 });
 
