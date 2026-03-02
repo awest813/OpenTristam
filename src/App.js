@@ -516,13 +516,13 @@ class App extends React.Component {
       <SessionContext.Provider value={sessionContextValue}>
         <div className={classNames('App', {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
           {updateAvailable && (
-            <div className="updateBanner">
+            <div className="updateBanner" role="status" aria-live="polite" aria-atomic="true">
               A new version is available.{' '}
-              <button onClick={() => window.location.reload()}>Reload</button>
+              <button type="button" onClick={() => window.location.reload()}>Reload</button>
             </div>
           )}
           {this.state.storageError && (
-            <div className="storageBanner">
+            <div className="storageBanner" role="alert" aria-live="assertive" aria-atomic="true">
               Save storage unavailable — game progress will not be saved.{' '}
               <small>({this.state.storageError})</small>
             </div>

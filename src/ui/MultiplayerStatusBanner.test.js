@@ -64,6 +64,9 @@ describe('MultiplayerStatusBanner', () => {
 
     expect(container.textContent).toContain('Failed');
     expect(container.textContent).toContain('Session not found.');
+    const banner = container.querySelector('.multiplayerBanner');
+    expect(banner.getAttribute('role')).toBe('alert');
+    expect(banner.getAttribute('aria-live')).toBe('assertive');
 
     const buttons = Array.from(container.querySelectorAll('button'));
     const retryButton = buttons.find(node => node.textContent === 'Retry');

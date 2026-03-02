@@ -47,28 +47,35 @@ describe('session context-backed UI components', () => {
   it('StartScreen drives actions from session context', async () => {
     const startGame = jest.fn();
     const openSaveManager = jest.fn();
+    const openCompressor = jest.fn();
 
     await renderWithSession(<StartScreen/>, {
       hasSpawn: true,
       hasSaves: true,
       startGame,
       openSaveManager,
+      openCompressor,
     });
 
-    const buttons = Array.from(container.querySelectorAll('.startButton'));
+    const buttons = Array.from(container.querySelectorAll('button.startButton'));
     const sharewareButton = buttons.find(node => node.textContent === 'Play Shareware');
     const manageSavesButton = buttons.find(node => node.textContent === 'Manage Saves');
+    const compressButton = container.querySelector('.linkButton');
 
     expect(sharewareButton).toBeTruthy();
     expect(manageSavesButton).toBeTruthy();
+    expect(buttons.every(node => node.tagName === 'BUTTON')).toBe(true);
+    expect(compressButton).toBeTruthy();
 
     act(() => {
       sharewareButton.dispatchEvent(new MouseEvent('click', {bubbles: true}));
       manageSavesButton.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+      compressButton.dispatchEvent(new MouseEvent('click', {bubbles: true}));
     });
 
     expect(startGame).toHaveBeenCalledWith(null);
     expect(openSaveManager).toHaveBeenCalledTimes(1);
+    expect(openCompressor).toHaveBeenCalledTimes(1);
   });
 
   it('LoadingScreen reads progress from session context', async () => {
@@ -82,6 +89,7 @@ describe('session context-backed UI components', () => {
 
     expect(container.textContent).toContain('Booting...');
     expect(container.querySelector('.progressBar')).not.toBeNull();
+    expect(container.querySelector('.loading').getAttribute('role')).toBe('status');
   });
 
   it('ErrorOverlay renders from session context values', async () => {
@@ -94,7 +102,9 @@ describe('session context-backed UI components', () => {
     const root = container.querySelector('.error');
     expect(root).not.toBeNull();
     expect(root.textContent).toContain('Unexpected failure');
-    expect(root.getAttribute('href')).toContain('github.com');
+    expect(root.getAttribute('role')).toBe('alertdialog');
+    const issueLink = container.querySelector('.errorIssueLink');
+    expect(issueLink.getAttribute('href')).toContain('github.com');
   });
 
   it('SaveManager closes via session context callback', async () => {
@@ -108,8 +118,9 @@ describe('session context-backed UI components', () => {
 
     await renderWithSession(<SaveManager/>, {fs, closeSaveManager});
 
-    const backButton = Array.from(container.querySelectorAll('.startButton')).find(node => node.textContent === 'Back');
+    const backButton = Array.from(container.querySelectorAll('button.startButton')).find(node => node.textContent === 'Back');
     expect(backButton).toBeTruthy();
+    expect(backButton.tagName).toBe('BUTTON');
 
     act(() => {
       backButton.dispatchEvent(new MouseEvent('click', {bubbles: true}));

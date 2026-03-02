@@ -1,6 +1,7 @@
 import React from 'react';
 import { buildIssueUrl, ExternalLink } from '../api/errorReporter';
 import { useSession } from '../engine/sessionContext';
+import DialogFrame from './DialogFrame';
 
 export default function ErrorOverlay(props) {
   const session = useSession();
@@ -13,11 +14,13 @@ export default function ErrorOverlay(props) {
   }
 
   return (
-    <ExternalLink className="error" href={buildIssueUrl(error, retail)}>
+    <DialogFrame className="error" role="alertdialog" ariaLabel="Game error details">
       <p className="header">The following error has occurred:</p>
       <p className="body">{error.message}</p>
-      <p className="footer">Click to create an issue on GitHub</p>
+      <ExternalLink className="errorIssueLink" href={buildIssueUrl(error, retail)}>
+        Create an issue on GitHub
+      </ExternalLink>
       {error.save != null && <a href={error.save} download={saveName}>Download save file</a>}
-    </ExternalLink>
+    </DialogFrame>
   );
 }

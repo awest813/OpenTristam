@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faDownload } from '@fortawesome/free-solid-svg-icons';
 import getPlayerName from '../api/savefile';
 import SessionContext from '../engine/sessionContext';
+import DialogFrame from './DialogFrame';
 
 const PLAYER_CLASSES = ['Warrior', 'Rogue', 'Sorcerer'];
 
@@ -11,6 +12,7 @@ export default class SaveManager extends React.Component {
 
   state = { saves: {} };
   lastSavesVersion = null;
+  uploadInputRef = React.createRef();
 
   getSessionValues() {
     return {
@@ -75,27 +77,45 @@ export default class SaveManager extends React.Component {
     }
   }
 
+  openUploadPicker = () => {
+    if (this.uploadInputRef.current) {
+      this.uploadInputRef.current.click();
+    }
+  }
+
   render() {
     const {onClose} = this.getSessionValues();
     const { saves } = this.state;
     return (
-      <div className="start">
+      <DialogFrame className="start" ariaLabel="Manage saves">
         <ul className="saveList">
           {Object.entries(saves).map(([name, info]) => (
             <li key={name}>
               {name}
               {info && <span className="info">{info.name} (lv. {info.level} {PLAYER_CLASSES[info.cls] ?? 'Unknown'})</span>}
-              <FontAwesomeIcon className="btnDownload" icon={faDownload} onClick={() => this.downloadSave(name)}/>
-              <FontAwesomeIcon className="btnRemove" icon={faTimes} onClick={() => this.removeSave(name)}/>
+              <button
+                type="button"
+                className="saveIconButton btnDownload"
+                onClick={() => this.downloadSave(name)}
+                aria-label={`Download ${name}`}
+              >
+                <FontAwesomeIcon icon={faDownload}/>
+              </button>
+              <button
+                type="button"
+                className="saveIconButton btnRemove"
+                onClick={() => this.removeSave(name)}
+                aria-label={`Delete ${name}`}
+              >
+                <FontAwesomeIcon icon={faTimes}/>
+              </button>
             </li>
           ))}
         </ul>
-        <form>
-          <label htmlFor="saveFileInput" className="startButton">Upload Save</label>
-          <input accept=".sv" type="file" id="saveFileInput" style={{display: 'none'}} onChange={this.uploadSave}/>
-        </form>
-        <div className="startButton" onClick={onClose || (() => {})}>Back</div>
-      </div>
+        <button type="button" className="startButton" onClick={this.openUploadPicker}>Upload Save</button>
+        <input accept=".sv" type="file" ref={this.uploadInputRef} style={{display: 'none'}} onChange={this.uploadSave}/>
+        <button type="button" className="startButton" onClick={onClose || (() => {})}>Back</button>
+      </DialogFrame>
     );
   }
 }

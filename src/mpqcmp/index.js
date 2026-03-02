@@ -1,13 +1,21 @@
 import React from 'react';
 import compress from './compress';
+import DialogFrame from '../ui/DialogFrame';
 
 export default class CompressMpq extends React.Component {
   state = {};
+  fileInputRef = React.createRef();
 
   parseFile = e => {
     const files = e.target.files;
     if (files.length > 0) {
       this.start(files[0]);
+    }
+  }
+
+  openFilePicker = () => {
+    if (this.fileInputRef.current) {
+      this.fileInputRef.current.click();
     }
   }
 
@@ -48,17 +56,17 @@ export default class CompressMpq extends React.Component {
     const { url, started, progress } = this.state;
     if (url) {
       return (
-        <div className="start">
+        <DialogFrame className="start" ariaLabel="MPQ compression complete">
           <p>
             <a href={url} download="DIABDAT.MPQ">Click here if download doesn&apos;t start.</a>
           </p>
-          <div className="startButton" onClick={this.onClose}>Back</div>
-        </div>
+          <button type="button" className="startButton" onClick={this.onClose}>Back</button>
+        </DialogFrame>
       );
     }
     if (started) {
       return (
-        <div className="loading">
+        <div className="loading" role="status" aria-live="polite" aria-atomic="true">
           {(progress && progress.text) || 'Processing...'}
           {progress != null && !!progress.total && (
             <span className="progressBar"><span><span style={{width: `${Math.round(100 * progress.loaded / progress.total)}%`}}/></span></span>
@@ -67,17 +75,15 @@ export default class CompressMpq extends React.Component {
       );
     }
     return (
-      <div className="start">
+      <DialogFrame className="start" ariaLabel="Compress MPQ">
         <p>
           You can use this tool to reduce the original MPQ to about half its size. It encodes sounds in MP3 format and uses better compression for regular files.
           To begin, click the button below or drop the MPQ onto the page.
         </p>
-        <form>
-          <label htmlFor="loadFile" className="startButton">Select MPQ</label>
-          <input accept=".mpq" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseFile}/>
-        </form>
-        <div className="startButton" onClick={this.onClose}>Back</div>
-      </div>
+        <button type="button" className="startButton" onClick={this.openFilePicker}>Select MPQ</button>
+        <input accept=".mpq" type="file" ref={this.fileInputRef} style={{display: "none"}} onChange={this.parseFile}/>
+        <button type="button" className="startButton" onClick={this.onClose}>Back</button>
+      </DialogFrame>
     );
   }
 }
