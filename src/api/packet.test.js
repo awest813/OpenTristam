@@ -1,4 +1,4 @@
-import { buffer_reader, buffer_writer } from './packet';
+import { buffer_reader, buffer_writer, packet_size } from './packet';
 
 describe('buffer_writer', () => {
   it('initializes correctly with length', () => {
@@ -90,6 +90,25 @@ describe('buffer_writer', () => {
       expect(writer.buffer[5]).toBe(20);
       expect(writer.buffer[6]).toBe(30);
     });
+  });
+});
+
+describe('packet_size', () => {
+  it('calculates size correctly for fixed size packets', () => {
+    const mockFixedType = { size: 4 };
+    expect(packet_size(mockFixedType, {})).toBe(5); // 4 + 1 for code
+
+    const mockFixedTypeZero = { size: 0 };
+    expect(packet_size(mockFixedTypeZero, {})).toBe(1); // 0 + 1 for code
+  });
+
+  it('calculates size correctly for dynamic size packets', () => {
+    const mockDynamicType = {
+      size: (packet) => packet.payload.length
+    };
+
+    expect(packet_size(mockDynamicType, { payload: 'abc' })).toBe(4); // 3 + 1 for code
+    expect(packet_size(mockDynamicType, { payload: '' })).toBe(1); // 0 + 1 for code
   });
 });
 
