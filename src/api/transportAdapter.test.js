@@ -48,6 +48,23 @@ describe('createTransportAdapter — packet queue', () => {
     adapter.dispose();
   });
 
+  it('schedules a single flush timer while packets are queued', () => {
+    const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+    const worker = makeWorker();
+    const adapter = createTransportAdapter(worker, makeWebRtc());
+
+    adapter.enqueue(new ArrayBuffer(4));
+    adapter.enqueue(new ArrayBuffer(8));
+
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(20);
+    expect(worker.postMessage).toHaveBeenCalledTimes(1);
+    const [msg] = worker.postMessage.mock.calls[0];
+    expect(msg.batch).toHaveLength(2);
+    adapter.dispose();
+    setTimeoutSpy.mockRestore();
+  });
+
   it('clears the queue after flushing so the next tick starts empty', () => {
     const worker = makeWorker();
     const adapter = createTransportAdapter(worker, makeWebRtc());
