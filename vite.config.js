@@ -73,6 +73,9 @@ export default defineConfig({
 
   build: {
     outDir: 'build',
+    // Emit source maps so that sourcemapped-stacktrace can resolve minified
+    // stack frames back to the original source locations in error reports.
+    sourcemap: true,
     // Use separate output directories to match the old CRA structure.
     rollupOptions: {
       input: {

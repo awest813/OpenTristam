@@ -1,6 +1,63 @@
-import { handleGameExit, handleProgress, setCurrentSave, setCursorPos } from './session';
+import { handleGameError, handleGameExit, handleProgress, setCurrentSave, setCursorPos } from './session';
 
-// ─── handleGameExit ──────────────────────────────────────────────────────────
+// ─── handleGameError ─────────────────────────────────────────────────────────
+
+jest.mock('sourcemapped-stacktrace', () => ({
+  mapStackTrace: jest.fn((stack, cb) => cb([stack])),
+}));
+
+describe('handleGameError', () => {
+  function makeApp(overrides = {}) {
+    return {
+      setState: jest.fn(updater => {
+        if (typeof updater === 'function') updater({error: null});
+      }),
+      ...overrides,
+    };
+  }
+
+  it('sets the error state with the given message when no stack is provided', async () => {
+    const app = makeApp();
+    handleGameError(app, 'Something broke');
+    // Allow micro-tasks to flush
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(app.setState).toHaveBeenCalled();
+    const updater = app.setState.mock.calls[0][0];
+    const result = typeof updater === 'function' ? updater({error: null}) : updater;
+    expect(result).toMatchObject({error: {message: 'Something broke'}});
+  });
+
+  it('resolves the stack trace via mapStackTrace when a stack is provided', async () => {
+    const { mapStackTrace } = require('sourcemapped-stacktrace');
+    mapStackTrace.mockImplementation((_stack, cb) => cb(['at foo.js:1:2']));
+    const app = makeApp();
+    handleGameError(app, 'Crash', 'at minified.js:1:1');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const calls = app.setState.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const lastUpdater = calls[calls.length - 1][0];
+    const result = typeof lastUpdater === 'function' ? lastUpdater({error: null}) : lastUpdater;
+    expect(result.error.stack).toBe('at foo.js:1:2');
+  });
+
+  it('does not overwrite a pre-existing error', async () => {
+    const app = makeApp();
+    // Simulate error already set: updater returns falsy when error exists
+    app.setState.mockImplementation(updater => {
+      if (typeof updater === 'function') updater({error: {message: 'previous'}});
+    });
+    handleGameError(app, 'New error');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    // All setState updaters should have returned falsy (undefined / false)
+    for (const [updater] of app.setState.mock.calls) {
+      if (typeof updater === 'function') {
+        expect(updater({error: {message: 'previous'}})).toBeFalsy();
+      }
+    }
+  });
+});
+
+
 
 describe('handleGameExit', () => {
   it('calls the reload function when there is no error', () => {
