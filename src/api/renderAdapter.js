@@ -29,12 +29,21 @@ export function createRenderAdapter(canvas, onBeltUpdate) {
     ? canvas.getContext('bitmaprenderer')
     : canvas.getContext('2d', {alpha: false});
 
+  // ⚡ Bolt: Cache ImageData objects by dimensions to eliminate constant
+  // allocations of Uint8ClampedArray per frame, reducing GC pressure.
+  const imageCache = new Map();
+
   function handleRender({bitmap, images, text, clip, belt}) {
     if (bitmap) {
       ctx.transferFromImageBitmap(bitmap);
     } else {
       for (const {x, y, w, h, data} of images) {
-        const image = ctx.createImageData(w, h);
+        const key = (w << 16) | h;
+        let image = imageCache.get(key);
+        if (!image) {
+          image = ctx.createImageData(w, h);
+          imageCache.set(key, image);
+        }
         image.data.set(data);
         ctx.putImageData(image, x, y);
       }

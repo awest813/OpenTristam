@@ -78,21 +78,28 @@ describe('createRenderAdapter — bitmap path', () => {
 // ─── legacy (pixel-copy) path ─────────────────────────────────────────────────
 
 describe('createRenderAdapter — legacy image path', () => {
-  it('creates and draws image data for each image in the batch', () => {
+  it('creates and draws image data for each image in the batch and caches ImageData objects', () => {
     const {canvas, ctx} = makeLegacyCanvas();
     const adapter = createRenderAdapter(canvas, jest.fn());
 
-    const data = new Uint8Array(4 * 4 * 4);
+    const data4 = new Uint8Array(4 * 4 * 4);
+    const data8 = new Uint8Array(8 * 8 * 4);
     adapter.handleRender({
       bitmap: null,
-      images: [{x: 10, y: 20, w: 4, h: 4, data}],
+      images: [
+        {x: 10, y: 20, w: 4, h: 4, data: data4},
+        {x: 15, y: 25, w: 4, h: 4, data: data4}, // Should reuse 4x4 ImageData
+        {x: 50, y: 50, w: 8, h: 8, data: data8}  // Should create new 8x8 ImageData
+      ],
       text: [],
       clip: null,
       belt: null,
     });
 
+    expect(ctx.createImageData).toHaveBeenCalledTimes(2);
     expect(ctx.createImageData).toHaveBeenCalledWith(4, 4);
-    expect(ctx.putImageData).toHaveBeenCalledTimes(1);
+    expect(ctx.createImageData).toHaveBeenCalledWith(8, 8);
+    expect(ctx.putImageData).toHaveBeenCalledTimes(3);
   });
 
   it('does not call text drawing functions when text array is empty', () => {
