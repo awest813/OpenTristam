@@ -95,4 +95,26 @@ describe('MultiplayerStatusBanner', () => {
     expect(copyShareLink).toHaveBeenCalledTimes(1);
     expect(dismissMultiplayerNotice).toHaveBeenCalledTimes(1);
   });
+
+  it('renders connecting state with retry action', async () => {
+    const retryMultiplayer = jest.fn();
+    await renderWithSession({
+      multiplayerStatus: 'connecting',
+      multiplayerMessage: 'Connecting...',
+      retryMultiplayer,
+    });
+
+    const buttons = Array.from(container.querySelectorAll('button'));
+    const retryButton = buttons.find(node => node.textContent === 'Retry');
+    const reconnectButton = buttons.find(node => node.textContent === 'Reconnect');
+
+    expect(retryButton).toBeTruthy();
+    expect(reconnectButton).toBeFalsy();
+
+    act(() => {
+      retryButton.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    });
+
+    expect(retryMultiplayer).toHaveBeenCalledTimes(1);
+  });
 });

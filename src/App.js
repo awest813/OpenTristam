@@ -260,13 +260,19 @@ class App extends React.Component {
     }
   }
   onMultiplayerStatus = status => {
-    this.setState({
-      multiplayerStatus: status.status || 'idle',
-      multiplayerErrorCategory: status.category || null,
-      multiplayerMessage: status.message || '',
-      multiplayerSessionId: status.sessionId || null,
-      multiplayerShareUrl: status.shareUrl || null,
-      multiplayerNoticeDismissed: false,
+    this.setState(prevState => {
+      const nextStatus = status.status || 'idle';
+      const nextCategory = status.category || null;
+      const shouldRedisplayNotice = prevState.multiplayerStatus !== nextStatus
+        || prevState.multiplayerErrorCategory !== nextCategory;
+      return {
+        multiplayerStatus: nextStatus,
+        multiplayerErrorCategory: nextCategory,
+        multiplayerMessage: status.message || '',
+        multiplayerSessionId: status.sessionId || null,
+        multiplayerShareUrl: status.shareUrl || null,
+        multiplayerNoticeDismissed: shouldRedisplayNotice ? false : prevState.multiplayerNoticeDismissed,
+      };
     });
   }
 

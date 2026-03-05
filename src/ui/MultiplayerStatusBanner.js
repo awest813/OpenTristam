@@ -42,7 +42,7 @@ export default function MultiplayerStatusBanner(props) {
         {message && <span className="multiplayerBanner-message">{message}</span>}
       </div>
       <div className="multiplayerBanner-actions">
-        {(status === 'retrying' || status === 'failed') && (
+        {(status === 'connecting' || status === 'retrying' || status === 'failed') && (
           <button type="button" onClick={onRetry}>Retry</button>
         )}
         {(status === 'failed' || status === 'connected') && (
