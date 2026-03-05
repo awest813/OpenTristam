@@ -86,34 +86,39 @@ export default class SaveManager extends React.Component {
   render() {
     const {onClose} = this.getSessionValues();
     const { saves } = this.state;
+    const saveEntries = Object.entries(saves);
     return (
       <DialogFrame className="start" ariaLabel="Manage saves">
-        <ul className="saveList">
-          {Object.entries(saves).map(([name, info]) => (
-            <li key={name}>
-              {name}
-              {info && <span className="info">{info.name} (lv. {info.level} {PLAYER_CLASSES[info.cls] ?? 'Unknown'})</span>}
-              <button
-                type="button"
-                className="saveIconButton btnDownload"
-                onClick={() => this.downloadSave(name)}
-                aria-label={`Download ${name}`}
-              >
-                <FontAwesomeIcon icon={faDownload}/>
-              </button>
-              <button
-                type="button"
-                className="saveIconButton btnRemove"
-                onClick={() => this.removeSave(name)}
-                aria-label={`Delete ${name}`}
-              >
-                <FontAwesomeIcon icon={faTimes}/>
-              </button>
-            </li>
-          ))}
-        </ul>
+        {saveEntries.length === 0 ? (
+          <p className="savesEmpty">No save files found.</p>
+        ) : (
+          <ul className="saveList">
+            {saveEntries.map(([name, info]) => (
+              <li key={name}>
+                {name}
+                {info && <span className="info">{info.name} (lv. {info.level} {PLAYER_CLASSES[info.cls] ?? 'Unknown'})</span>}
+                <button
+                  type="button"
+                  className="saveIconButton btnDownload"
+                  onClick={() => this.downloadSave(name)}
+                  aria-label={`Download ${name}`}
+                >
+                  <FontAwesomeIcon icon={faDownload}/>
+                </button>
+                <button
+                  type="button"
+                  className="saveIconButton btnRemove"
+                  onClick={() => this.removeSave(name)}
+                  aria-label={`Delete ${name}`}
+                >
+                  <FontAwesomeIcon icon={faTimes}/>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <button type="button" className="startButton" onClick={this.openUploadPicker}>Upload Save</button>
-        <input accept=".sv" type="file" ref={this.uploadInputRef} style={{display: 'none'}} onChange={this.uploadSave}/>
+        <input accept=".sv" type="file" ref={this.uploadInputRef} style={{display: 'none'}} aria-label="Select save file to upload" onChange={this.uploadSave}/>
         <button type="button" className="startButton" onClick={onClose || (() => {})}>Back</button>
       </DialogFrame>
     );

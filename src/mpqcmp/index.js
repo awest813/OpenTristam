@@ -89,7 +89,7 @@ export default class CompressMpq extends React.Component {
           To begin, click the button below or drop the MPQ onto the page.
         </p>
         <button type="button" className="startButton" onClick={this.openFilePicker}>Select MPQ</button>
-        <input accept=".mpq" type="file" ref={this.fileInputRef} style={{display: "none"}} onChange={this.parseFile}/>
+        <input accept=".mpq" type="file" ref={this.fileInputRef} style={{display: "none"}} aria-label="Select MPQ file to compress" onChange={this.parseFile}/>
         <button type="button" className="startButton" onClick={this.onClose}>Back</button>
       </DialogFrame>
     );

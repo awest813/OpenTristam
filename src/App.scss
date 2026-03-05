@@ -10,6 +10,14 @@ body, #root, .App {
   background-color: #000;
   &.dropping {
     background-color: #111;
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 3px dashed rgba(200, 149, 42, 0.7);
+      pointer-events: none;
+      z-index: 10001;
+    }
   }
 }
 .Body, .BodyV {
@@ -236,6 +244,11 @@ body, #root, .App {
           background-color: rgba(58, 40, 16, 0.4);
         }
       }
+    }
+    .savesEmpty {
+      margin: 10px 0;
+      color: #7a6a54;
+      font-style: italic;
     }
     .mobileOnboarding {
       margin: 14px 0;
@@ -467,6 +480,9 @@ body, #root, .App {
       &:hover {
         color: #fff;
       }
+    }
+    .startButton {
+      margin-top: 12px;
     }
   }
 

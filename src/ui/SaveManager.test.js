@@ -67,4 +67,27 @@ describe('SaveManager', () => {
     });
     expect(fsApi.delete).toHaveBeenCalledWith('hero.sv');
   });
+
+  it('shows an empty state message when there are no save files', async () => {
+    const fsApi = {
+      files: new Map(),
+      delete: jest.fn(),
+      download: jest.fn(),
+      upload: jest.fn(),
+    };
+
+    await renderWithSession({fs: Promise.resolve(fsApi)});
+
+    expect(container.textContent).toContain('No save files found.');
+    expect(container.querySelector('ul.saveList')).toBeNull();
+  });
+
+  it('upload file input has an accessible aria-label', async () => {
+    const fsApi = {files: new Map(), delete: jest.fn(), download: jest.fn(), upload: jest.fn()};
+    await renderWithSession({fs: Promise.resolve(fsApi)});
+
+    const uploadInput = container.querySelector('input[type="file"]');
+    expect(uploadInput).toBeTruthy();
+    expect(uploadInput.getAttribute('aria-label')).toBeTruthy();
+  });
 });

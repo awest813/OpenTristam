@@ -289,20 +289,13 @@ class App extends React.Component {
     if (!text) {
       return false;
     }
-    let clipboardFailed = false;
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
         return true;
       }
     } catch (e) {
-      clipboardFailed = true;
-    }
-    if (!clipboardFailed && (!navigator.clipboard || !navigator.clipboard.writeText)) {
-      clipboardFailed = true;
-    }
-    if (!clipboardFailed) {
-      return false;
+      // Clipboard API unavailable or permission denied — fall through to execCommand
     }
     const input = document.createElement('textarea');
     input.value = text;

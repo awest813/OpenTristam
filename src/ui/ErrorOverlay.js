@@ -8,6 +8,7 @@ export default function ErrorOverlay(props) {
   const error = props.error || session.error;
   const retail = props.retail != null ? props.retail : session.retail;
   const saveName = props.saveName || session.saveName;
+  const onReload = props.onReload || (() => window.location.reload());
 
   if (!error) {
     return null;
@@ -21,6 +22,9 @@ export default function ErrorOverlay(props) {
         Create an issue on GitHub
       </ExternalLink>
       {error.save != null && <a href={error.save} download={saveName}>Download save file</a>}
+      <button type="button" className="startButton" onClick={onReload}>
+        Reload
+      </button>
     </DialogFrame>
   );
 }
