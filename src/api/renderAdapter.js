@@ -5,6 +5,12 @@
  * time and selects the appropriate rendering path (bitmap or legacy pixel-
  * copy). The `offscreen` property is exposed so the caller can tell the
  * worker which path to use during `init`.
+ *
+ * Visibility throttling: call `setVisible(false)` (e.g. on the Page
+ * Visibility API `visibilitychange` event) to suppress canvas drawing while
+ * the tab is hidden. The game simulation continues normally; only the
+ * expensive canvas operations and belt update are skipped, reducing idle
+ * CPU load to near zero. Call `setVisible(true)` to resume immediately.
  */
 
 function supportsOffscreen() {
@@ -21,7 +27,7 @@ function supportsOffscreen() {
 /**
  * @param {HTMLCanvasElement} canvas  The game canvas element.
  * @param {function} onBeltUpdate     Called with the belt payload after each frame.
- * @returns {{ offscreen: boolean, handleRender: function }}
+ * @returns {{ offscreen: boolean, handleRender: function, setVisible: function }}
  */
 export function createRenderAdapter(canvas, onBeltUpdate) {
   const offscreen = supportsOffscreen();
@@ -33,7 +39,15 @@ export function createRenderAdapter(canvas, onBeltUpdate) {
   // allocations of Uint8ClampedArray per frame, reducing GC pressure.
   const imageCache = new Map();
 
+  // Visibility state: skip canvas work while the tab is hidden.
+  let visible = typeof document !== 'undefined' ? !document.hidden : true;
+
   function handleRender({bitmap, images, text, clip, belt}) {
+    if (!visible) {
+      // Tab is hidden — drop the frame entirely to save CPU.
+      // The game simulation in the worker is unaffected.
+      return;
+    }
     if (bitmap) {
       ctx.transferFromImageBitmap(bitmap);
     } else {
@@ -69,5 +83,14 @@ export function createRenderAdapter(canvas, onBeltUpdate) {
     onBeltUpdate(belt);
   }
 
-  return {offscreen, handleRender};
+  /**
+   * Control whether render frames are drawn to the canvas.
+   * Pass `false` when the page becomes hidden, `true` when it becomes visible.
+   * @param {boolean} nextVisible
+   */
+  function setVisible(nextVisible) {
+    visible = Boolean(nextVisible);
+  }
+
+  return {offscreen, handleRender, setVisible};
 }

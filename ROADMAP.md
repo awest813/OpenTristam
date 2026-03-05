@@ -126,6 +126,9 @@ Status legend:
 - 🔲 Profile worker hotspots and optimize render patch pipeline
 - ✅ Lazy-load MPQ compression tooling (loaded only when compressor UI opens)
 - ✅ Add bundle-size budget checks in CI (`npm run check:bundle-budget`)
+- ✅ Add viewport-aware render throttling for hidden/inactive tabs (`renderAdapter.setVisible`)
+- ✅ Expand bundle budget enforcement to include worker chunks (`BUNDLE_BUDGET_WORKER_JS_GZIP_BYTES`)
+- ✅ Replace repeated object allocations in high-frequency mouse input handler with pooled struct
 
 ### PWA & Offline
 - 🔲 Clear service-worker update UX
@@ -141,10 +144,10 @@ The items below are scoped for safe, incremental delivery (small PRs, measurable
 | Priority | Impact | Item | Why it's safe | Validation |
 | --- | --- | --- | --- | --- |
 | P0 | High | Profile and reduce hot-path message churn between `loader.js` and `game.worker.js` (batch/coalesce non-critical events). | Message schema is already formalized; can preserve protocol compatibility with adapter tests. | Add/extend worker message throughput tests + compare frame-time variance before/after. |
-| P0 | High | Add viewport-aware render throttling for hidden/inactive tabs and paused overlays. | Browser visibility APIs are additive and do not alter deterministic simulation when active. | Unit tests around visibility transitions + manual idle CPU measurement. |
+| ✅ P0 | High | Add viewport-aware render throttling for hidden/inactive tabs and paused overlays. | Browser visibility APIs are additive and do not alter deterministic simulation when active. | Unit tests around visibility transitions + manual idle CPU measurement. |
 | P1 | Medium | Defer non-critical UI overlay work until after session start (diagnostics/history panels). | UI-only scheduling; does not touch game state updates. | Start-time measurements and React profiler capture on cold load. |
-| P1 | Medium | Expand bundle budget enforcement to include worker chunks and source-map deltas. | CI-only guardrail change; no runtime behavior changes. | `npm run check:bundle-budget` with thresholds documented and tracked in PRs. |
-| P2 | Medium | Replace repeated object allocations in high-frequency input handlers with pooled/reused structs. | Localized input-path optimization with existing input tests to prevent behavior drift. | Keyboard/mouse/touch unit tests + perf comparison in devtools allocation timeline. |
+| ✅ P1 | Medium | Expand bundle budget enforcement to include worker chunks and source-map deltas. | CI-only guardrail change; no runtime behavior changes. | `npm run check:bundle-budget` with thresholds documented and tracked in PRs. |
+| ✅ P2 | Medium | Replace repeated object allocations in high-frequency input handlers with pooled/reused structs. | Localized input-path optimization with existing input tests to prevent behavior drift. | Keyboard/mouse/touch unit tests + perf comparison in devtools allocation timeline. |
 
 #### Other fixes (safe, high/medium impact)
 

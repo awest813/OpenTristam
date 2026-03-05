@@ -8,6 +8,21 @@ function makeBitmapContext() {
   };
 }
 
+// Stub document.hidden so visibility tests work in jsdom.
+function withDocumentHidden(hidden, fn) {
+  const original = Object.getOwnPropertyDescriptor(document, 'hidden');
+  Object.defineProperty(document, 'hidden', {value: hidden, configurable: true});
+  try {
+    return fn();
+  } finally {
+    if (original) {
+      Object.defineProperty(document, 'hidden', original);
+    } else {
+      delete document.hidden;
+    }
+  }
+}
+
 function makeLegacyContext() {
   const imageData = {data: {set: jest.fn()}};
   return {
@@ -178,3 +193,89 @@ describe('createRenderAdapter — legacy image path', () => {
     expect(ctx.fillStyle).toBe('rgb(255, 128, 64)');
   });
 });
+
+// ─── visibility throttling ────────────────────────────────────────────────────
+
+describe('createRenderAdapter — setVisible', () => {
+  it('skips canvas drawing when setVisible(false) is called', () => {
+    const {canvas, ctx} = makeLegacyCanvas();
+    const onBeltUpdate = jest.fn();
+    const adapter = createRenderAdapter(canvas, onBeltUpdate);
+
+    adapter.setVisible(false);
+
+    adapter.handleRender({
+      bitmap: null,
+      images: [{x: 0, y: 0, w: 4, h: 4, data: new Uint8Array(64)}],
+      text: [],
+      clip: null,
+      belt: [1, 2],
+    });
+
+    expect(ctx.putImageData).not.toHaveBeenCalled();
+    expect(onBeltUpdate).not.toHaveBeenCalled();
+  });
+
+  it('resumes drawing after setVisible(true)', () => {
+    const {canvas} = makeLegacyCanvas();
+    const onBeltUpdate = jest.fn();
+    const adapter = createRenderAdapter(canvas, onBeltUpdate);
+
+    adapter.setVisible(false);
+    adapter.setVisible(true);
+
+    const belt = [0, 1];
+    adapter.handleRender({bitmap: null, images: [], text: [], clip: null, belt});
+
+    expect(onBeltUpdate).toHaveBeenCalledWith(belt);
+  });
+
+  it('skips bitmap draw when hidden', () => {
+    const ctx = makeBitmapContext();
+    const canvas = {getContext: jest.fn(() => ctx)};
+    const onBeltUpdate = jest.fn();
+    const adapter = createRenderAdapter(canvas, onBeltUpdate);
+
+    adapter.setVisible(false);
+
+    const bitmap = {kind: 'ImageBitmap'};
+    adapter.handleRender({bitmap, images: [], text: [], clip: null, belt: null});
+
+    expect(ctx.transferFromImageBitmap).not.toHaveBeenCalled();
+    expect(onBeltUpdate).not.toHaveBeenCalled();
+  });
+
+  it('initialises as visible when document.hidden is false', () => {
+    withDocumentHidden(false, () => {
+      const {canvas} = makeLegacyCanvas();
+      const onBeltUpdate = jest.fn();
+      const adapter = createRenderAdapter(canvas, onBeltUpdate);
+
+      const belt = [0, 1];
+      adapter.handleRender({bitmap: null, images: [], text: [], clip: null, belt});
+
+      // onBeltUpdate is only called when the adapter is visible and rendering ran.
+      expect(onBeltUpdate).toHaveBeenCalledWith(belt);
+    });
+  });
+
+  it('initialises as hidden when document.hidden is true', () => {
+    withDocumentHidden(true, () => {
+      const {canvas, ctx} = makeLegacyCanvas();
+      const onBeltUpdate = jest.fn();
+      const adapter = createRenderAdapter(canvas, onBeltUpdate);
+
+      adapter.handleRender({
+        bitmap: null,
+        images: [{x: 0, y: 0, w: 2, h: 2, data: new Uint8Array(16)}],
+        text: [],
+        clip: null,
+        belt: [1],
+      });
+
+      expect(ctx.putImageData).not.toHaveBeenCalled();
+      expect(onBeltUpdate).not.toHaveBeenCalled();
+    });
+  });
+});
+

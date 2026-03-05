@@ -1,15 +1,21 @@
+// ⚡ Reusable position object — avoids allocating a new {x, y} on every mouse
+// or touch event. Callers always immediately destructure the return value so
+// it is safe to reuse the same object across calls.
+const _pos = {x: 0, y: 0};
+
 export function getMousePos(app, e) {
   const rect = app.canvas.getBoundingClientRect();
   if (app.pointerLocked()) {
     app.cursorPos.x = Math.max(rect.left, Math.min(rect.right, app.cursorPos.x + e.movementX));
     app.cursorPos.y = Math.max(rect.top, Math.min(rect.bottom, app.cursorPos.y + e.movementY));
   } else {
-    app.cursorPos = {x: e.clientX, y: e.clientY};
+    // Mutate in-place rather than allocating a new object each call.
+    app.cursorPos.x = e.clientX;
+    app.cursorPos.y = e.clientY;
   }
-  return {
-    x: Math.max(0, Math.min(Math.round((app.cursorPos.x - rect.left) / (rect.right - rect.left) * 640), 639)),
-    y: Math.max(0, Math.min(Math.round((app.cursorPos.y - rect.top) / (rect.bottom - rect.top) * 480), 479)),
-  };
+  _pos.x = Math.max(0, Math.min(Math.round((app.cursorPos.x - rect.left) / (rect.right - rect.left) * 640), 639));
+  _pos.y = Math.max(0, Math.min(Math.round((app.cursorPos.y - rect.top) / (rect.bottom - rect.top) * 480), 479));
+  return _pos;
 }
 
 export function getMouseButton(e) {

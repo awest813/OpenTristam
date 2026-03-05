@@ -132,3 +132,24 @@ describe('handleMouseUp', () => {
     expect(e.preventDefault).not.toHaveBeenCalled();
   });
 });
+
+// ─── object pooling (allocation reduction) ───────────────────────────────────
+
+describe('getMousePos — object pooling', () => {
+  it('returns the same object reference on successive calls', () => {
+    const app = makeApp();
+    const ref1 = getMousePos(app, {clientX: 100, clientY: 50});
+    const ref2 = getMousePos(app, {clientX: 200, clientY: 100});
+    expect(ref1).toBe(ref2);
+  });
+
+  it('mutates cursorPos in-place instead of creating a new object (non-locked)', () => {
+    const app = makeApp();
+    const original = app.cursorPos;
+    getMousePos(app, {clientX: 320, clientY: 240});
+    expect(app.cursorPos).toBe(original);
+    expect(app.cursorPos.x).toBe(320);
+    expect(app.cursorPos.y).toBe(240);
+  });
+});
+

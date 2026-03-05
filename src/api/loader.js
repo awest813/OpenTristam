@@ -19,6 +19,14 @@ async function do_load_game(api, audio, mpq, spawn) {
   const renderAdapter = createRenderAdapter(api.canvas, belt => api.updateBelt(belt));
   const fsAdapter = createFsAdapter(fs);
 
+  // Pause canvas rendering while the tab is hidden to reduce idle CPU load.
+  // The game simulation in the worker is unaffected — only draw calls are
+  // suppressed. We re-enable immediately when the tab becomes visible again.
+  const onVisibilityChange = () => {
+    renderAdapter.setVisible(!document.hidden);
+  };
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
   return await new Promise((resolve, reject) => {
     try {
       const worker = new GameWorker();
@@ -70,6 +78,7 @@ async function do_load_game(api, audio, mpq, spawn) {
       let workerTerminated = false;
 
       const dispose = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
         transport.dispose();
         if (multiplayerTransport) {
           multiplayerTransport.dispose();

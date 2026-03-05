@@ -16,6 +16,7 @@ function readBudget(name, fallbackBytes) {
 
 const budgets = {
   mainJsGzip: readBudget('BUNDLE_BUDGET_MAIN_JS_GZIP_BYTES', 190 * 1024),
+  workerJsGzip: readBudget('BUNDLE_BUDGET_WORKER_JS_GZIP_BYTES', 40 * 1024),
   totalJsGzip: readBudget('BUNDLE_BUDGET_TOTAL_JS_GZIP_BYTES', 220 * 1024),
   totalCssGzip: readBudget('BUNDLE_BUDGET_TOTAL_CSS_GZIP_BYTES', 12 * 1024),
   totalWasmGzip: readBudget('BUNDLE_BUDGET_TOTAL_WASM_GZIP_BYTES', 980 * 1024),
@@ -66,6 +67,9 @@ async function main() {
   const cssFiles = assetsStats.filter(file => file.name.endsWith('.css'));
   const wasmFiles = assetsStats.filter(file => file.name.endsWith('.wasm'));
   const mainJs = jsFiles.find(file => /^main-.*\.js$/.test(file.name));
+  // Worker chunks: any JS file that is not the main entry chunk.
+  // Vite emits workers with names like `<module>-<hash>.js` (no leading `main-`).
+  const workerJs = jsFiles.filter(file => !/^main-.*\.js$/.test(file.name));
 
   if (!mainJs) {
     console.error('[bundle-budget] Could not locate the main JS chunk (expected name pattern: main-*.js).');
@@ -78,6 +82,11 @@ async function main() {
       value: mainJs.gzipBytes,
       limit: budgets.mainJsGzip,
     },
+    ...(workerJs.length > 0 ? [{
+      title: 'Worker JS total (gzip)',
+      value: sumBytes(workerJs),
+      limit: budgets.workerJsGzip,
+    }] : []),
     {
       title: 'Total JS (gzip)',
       value: sumBytes(jsFiles),
@@ -103,6 +112,12 @@ async function main() {
     logMetric(check.title, check.value, check.limit, pass);
   }
 
+  if (workerJs.length > 0) {
+    console.log('\n[bundle-budget] Worker chunks:');
+    for (const f of workerJs) {
+      console.log(`       ${f.name} (${formatBytes(f.gzipBytes)} gzip)`);
+    }
+  }
   console.log('\n[bundle-budget] Main chunk:', `${mainJs.name} (${formatBytes(mainJs.gzipBytes)} gzip)`);
   if (hasFailure) {
     console.error('\n[bundle-budget] One or more budgets were exceeded.');
