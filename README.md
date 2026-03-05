@@ -99,11 +99,16 @@ Helpful docs:
 
 ## Project status
 
-This project is active and currently focused on:
-- continued decomposition of the app shell,
-- toolchain modernization,
-- stronger runtime boundary contracts,
-- multiplayer reliability and diagnostics (connection lifecycle logging, status UX, and guided recovery).
+This project is active and currently in **Phase 5** (UX, Accessibility, and Performance).
+
+Completed milestones:
+- **Phase 0–2:** foundations, app shell decomposition, and toolchain modernization (Vite 6, React 18, Jest 29).
+- **Phase 3:** runtime boundary hardening — formal worker message types, adapter splits, lifecycle disposal.
+- **Phase 4:** multiplayer reliability — transport abstraction, structured diagnostics, connection status UX, guided recovery, and self-host relay docs.
+
+Current focus (Phase 5): UI polish, accessibility improvements, mobile UX, and performance profiling.
+
+Up next (Phase 6): developer experience, documentation coverage, E2E testing, and community growth.
 
 See [ROADMAP.md](ROADMAP.md) for milestone-level planning.
 
@@ -113,7 +118,9 @@ See [ROADMAP.md](ROADMAP.md) for milestone-level planning.
 
 Contributions are welcome.
 
-Current focus (Phase 4): multiplayer reliability, observability, and compatibility hardening.
+Current focus (Phase 5): UI polish, accessibility improvements, mobile UX, and performance.
+
+See [ROADMAP.md](ROADMAP.md) for planned work items. Pick a 🔲 item, open a scoped issue, and land changes with tests where feasible.
 
 ---
 

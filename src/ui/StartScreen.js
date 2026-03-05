@@ -40,6 +40,11 @@ export default function StartScreen(props) {
 
   return (
     <DialogFrame className="start" ariaLabel="Start Diablo">
+      <div className="startTitle" aria-hidden="true">
+        <span className="startTitleDeco">⚔</span>
+        <span className="startTitleText">DIABLO</span>
+        <span className="startTitleDeco">⚔</span>
+      </div>
       <p>
         This is a web port of the original Diablo game, based on source code reconstructed by
         GalaXyHaXz and devilution team. The project page with information and links can be found over here{' '}
@@ -98,19 +103,21 @@ export default function StartScreen(props) {
       {!hasSpawn && (
         <p>Or you can play the shareware version for free (50MB download).</p>
       )}
-      <button type="button" className="startButton" onClick={openMpqPicker}>Select MPQ</button>
-      <input
-        accept=".mpq"
-        type="file"
-        ref={mpqInputRef}
-        style={{display: 'none'}}
-        onChange={e => {
-          const {files} = e.target;
-          if (files.length > 0) onStart(files[0]);
-        }}
-      />
-      <button type="button" className="startButton" onClick={() => onStart(null)}>Play Shareware</button>
-      {hasSaves && <button type="button" className="startButton" onClick={onShowSaves}>Manage Saves</button>}
+      <div className="startActions">
+        <button type="button" className="startButton startButton--primary" onClick={openMpqPicker}>Select MPQ</button>
+        <input
+          accept=".mpq"
+          type="file"
+          ref={mpqInputRef}
+          style={{display: 'none'}}
+          onChange={e => {
+            const {files} = e.target;
+            if (files.length > 0) onStart(files[0]);
+          }}
+        />
+        <button type="button" className="startButton" onClick={() => onStart(null)}>Play Shareware</button>
+        {hasSaves && <button type="button" className="startButton startButton--secondary" onClick={onShowSaves}>Manage Saves</button>}
+      </div>
     </DialogFrame>
   );
 }

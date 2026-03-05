@@ -12,11 +12,11 @@ Status legend:
 
 ## 2026 Strategic Objectives
 
-1. **Stabilize architecture boundaries** between app shell, worker, storage, and transports.
-2. **Modernize the toolchain** to reduce contributor setup friction and build times.
-3. **Increase multiplayer reliability** with better diagnostics and recovery UX.
-4. **Improve accessibility and mobile UX** without regressing core gameplay behavior.
-5. **Raise confidence** through targeted unit, integration, and regression coverage.
+1. **Stabilize architecture boundaries** between app shell, worker, storage, and transports. ✅
+2. **Modernize the toolchain** to reduce contributor setup friction and build times. ✅
+3. **Increase multiplayer reliability** with better diagnostics and recovery UX. ✅
+4. **Improve accessibility and mobile UX** without regressing core gameplay behavior. 🚧
+5. **Raise confidence** through targeted unit, integration, and regression coverage. 🚧
 
 ---
 
@@ -112,10 +112,17 @@ Status legend:
 - ✅ Keyboard-operable overlay controls
 - ✅ Focus trap + return-focus behavior for dialogs
 - ✅ Improved ARIA labeling and semantic landmarks in app chrome
-- 🔲 Optional high-contrast UI mode (outside core game rendering)
+- 🚧 Optional high-contrast UI mode (outside core game rendering)
+
+### UI Polish
+- ✅ Diablo-themed start screen with game title header
+- ✅ Smooth button transitions and hover animations
+- ✅ Improved dialog visual hierarchy and typography
+- ✅ Enhanced loading screen progress indicator styling
+- ✅ Consistent gold/dark color palette across all overlays
 
 ### Performance
-- 🔲 Reduce startup main-thread blocking
+- 🚧 Reduce startup main-thread blocking
 - 🔲 Profile worker hotspots and optimize render patch pipeline
 - ✅ Lazy-load MPQ compression tooling (loaded only when compressor UI opens)
 - ✅ Add bundle-size budget checks in CI (`npm run check:bundle-budget`)
@@ -127,12 +134,40 @@ Status legend:
 
 ---
 
+## Phase 6 — Community and Ecosystem Growth
+
+**Goal:** lower the barrier to contribution, improve documentation coverage, and build toward a sustainable maintenance model.
+
+### Documentation
+- 🔲 Interactive architecture diagram (Mermaid or equivalent, embedded in docs)
+- 🔲 Troubleshooting FAQ for common MPQ import and browser compatibility issues
+- 🔲 Video walkthrough of contributor setup and first PR workflow
+- 🔲 Changelog generation from conventional commit messages
+
+### Developer Experience
+- 🔲 Devcontainer / Codespaces support for zero-setup contributor onboarding
+- 🔲 Pre-commit hooks for lint and format checks (Husky or equivalent)
+- 🔲 Per-PR bundle size reporting (comment on PR with size diff vs base)
+- 🔲 Automated dependency update PRs (Renovate or Dependabot configuration)
+
+### Testing & Quality
+- 🔲 E2E smoke tests for critical flows (shareware load, save import, MPQ import)
+- 🔲 Visual regression tests for start screen and overlay components
+- 🔲 Code coverage thresholds enforced in CI
+
+### Feature Expansion
+- 🔲 Save file browser with player stats and class icons
+- 🔲 In-app changelog / release notes overlay (shown on version bump)
+- 🔲 Keyboard shortcut reference overlay (accessible from start screen)
+- ⏸ Gamepad/controller input mapping
+- ⏸ Optional cloud save sync (would require backend)
+
+---
+
 ## Deferred / Under Consideration
 
 - ⏸ TypeScript migration (revisit after toolchain stabilization)
-- ⏸ Gamepad/controller support
 - ⏸ Advanced low-latency audio scheduling improvements
-- ⏸ Optional cloud save sync (would require backend)
 - ⏸ Official Dockerized relay reference deployment
 
 ---
@@ -145,3 +180,4 @@ If you want to contribute against this roadmap:
 2. Describe expected behavior changes and risks.
 3. Land work in small PRs with tests where feasible.
 4. Update docs when workflows, setup, or user-visible behavior changes.
+5. Prefer adding tests alongside feature work; the test suite should grow, not shrink.
