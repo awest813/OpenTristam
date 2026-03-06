@@ -396,9 +396,12 @@ async function init_game(mpq, spawn, offscreen) {
 
   progress('Initializing...');
 
-  const vers = process.env.VERSION.match(/(\d+)\.(\d+)\.(\d+)/);
+  const versMatch = process.env.VERSION ? String(process.env.VERSION).match(/(\d+)\.(\d+)\.(\d+)/) : null;
+  const versMajor = versMatch ? parseInt(versMatch[1], 10) : 0;
+  const versMinor = versMatch ? parseInt(versMatch[2], 10) : 0;
+  const versPatch = versMatch ? parseInt(versMatch[3], 10) : 0;
 
-  wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0, parseInt(vers[1]), parseInt(vers[2]), parseInt(vers[3]));
+  wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0, versMajor, versMinor, versPatch);
 
   renderInterval = setInterval(() => {
     call_api('DApi_Render', Math.floor(performance.now()));

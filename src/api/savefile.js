@@ -247,8 +247,24 @@ function getPassword(name) {
 
 export default function getPlayerName(data, name) {
   try {
-    const reader = new MpqReader(data);
-    const hero = codec_decode(reader.read("hero"), getPassword(name));
+    // Accept either ArrayBuffer or Uint8Array.  When the caller passes a
+    // Uint8Array (e.g. directly from the files Map) we must normalise it to
+    // an ArrayBuffer that covers exactly the right byte range; a Uint8Array
+    // whose byteOffset is non-zero would otherwise give MpqReader a buffer
+    // that starts at the wrong position.
+    let buffer;
+    if (data instanceof Uint8Array) {
+      buffer = (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength)
+        ? data.buffer
+        : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+    } else {
+      buffer = data;
+    }
+    const reader = new MpqReader(buffer);
+    const hero = codec_decode(reader.read('hero'), getPassword(name));
+    if (!hero) {
+      return null;
+    }
     const nameEnd = hero.indexOf(0, 16);
     const result = {};
     result.name = String.fromCharCode(...hero.subarray(16, nameEnd));

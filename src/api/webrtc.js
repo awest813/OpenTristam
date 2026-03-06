@@ -198,26 +198,34 @@ class webrtc_client {
 
     this.conn.on('data', data => {
       unreg();
-      const reader = new buffer_reader(data);
-      const {type, packet: pkt} = read_packet(reader, server_packet);
-      switch (type.code) {
-      case server_packet.join_accept.code:
-        this.myplr = pkt.index;
-        this.onLifecycle({type: 'connected', role: 'client', id: this.myplr});
-        break;
-      case server_packet.join_reject.code:
-        this.onLifecycle({type: 'error', role: 'client', reason: pkt.reason});
-        onClose();
-        break;
-      case server_packet.disconnect.code:
-        if (pkt.id === this.myplr) {
-          this.onLifecycle({type: 'disconnected', role: 'client', reason: pkt.reason});
+      try {
+        const reader = new buffer_reader(data);
+        const {type, packet: pkt} = read_packet(reader, server_packet);
+        switch (type.code) {
+        case server_packet.join_accept.code:
+          this.myplr = pkt.index;
+          this.onLifecycle({type: 'connected', role: 'client', id: this.myplr});
+          break;
+        case server_packet.join_reject.code:
+          this.onLifecycle({type: 'error', role: 'client', reason: pkt.reason});
           onClose();
+          break;
+        case server_packet.disconnect.code:
+          if (pkt.id === this.myplr) {
+            this.onLifecycle({type: 'disconnected', role: 'client', reason: pkt.reason});
+            onClose();
+          }
+          break;
+        default:
         }
-        break;
-      default:
+        if (!reader.done()) {
+          throw Error('packet too large');
+        }
+        onMessage(data);
+      } catch (e) {
+        this.onError(e || new Error('PeerJS client packet parse error'));
+        this.onLifecycle({type: 'error', role: 'client', category: 'protocol_mismatch', message: String(e)});
       }
-      onMessage(data);
     });
     this.conn.on('close', _data => {
       this.onLifecycle({type: 'closed', role: 'client'});

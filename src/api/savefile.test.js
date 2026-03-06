@@ -224,4 +224,36 @@ it('returns null when codec_decode fails to parse the hero file', () => {
 
     expect(getPlayerName(buf, 'single_0.sv')).toBeNull();
   });
+
+  it('accepts a Uint8Array with byteOffset 0 (direct view)', () => {
+    const buf = new ArrayBuffer(64);
+    // Invalid MPQ header — expect graceful null, not a crash
+    const u8 = new Uint8Array(buf);
+    expect(getPlayerName(u8, 'single_0.sv')).toBeNull();
+  });
+
+  it('accepts a Uint8Array with non-zero byteOffset without reading out-of-bounds', () => {
+    // Place valid-looking data at offset 32 inside a larger buffer.
+    // The Uint8Array view starts at byteOffset=32, so getPlayerName must NOT
+    // read from the start of the underlying ArrayBuffer.
+    const larger = new ArrayBuffer(512 + 32);
+    const u8view = new Uint8Array(larger, 32, 512);
+
+    // Write an invalid MPQ header at the start of the VIEW (offset 32 in buffer).
+    // Bytes [0..31] of the larger buffer remain zeroed → would parse as garbage.
+    // We expect getPlayerName to return null (invalid MPQ) rather than crashing.
+    const u32view = new Uint32Array(larger, 32, 128);
+    u32view[0] = 0x1A51504D; // valid MPQ signature at the right position
+
+    // No hash / block table entries → MpqReader constructs OK but read('hero') → undefined
+    // → codec_decode(undefined, ...) → null path → returns null.
+    expect(getPlayerName(u8view, 'single_0.sv')).toBeNull();
+  });
+
+  it('accepts a Uint8Array that is a copy (byteOffset 0, byteLength === buffer.byteLength)', () => {
+    const buf = new ArrayBuffer(64);
+    new Uint8Array(buf).fill(0); // invalid MPQ
+    const u8 = new Uint8Array(buf);
+    expect(getPlayerName(u8, 'single_0.sv')).toBeNull();
+  });
 });

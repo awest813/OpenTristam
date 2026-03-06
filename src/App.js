@@ -77,6 +77,13 @@ class App extends React.Component {
     savesVersion: 0,
     updateAvailable: false,
     storageError: null,
+    // Game session state (set by engine/session helpers)
+    progress: null,
+    error: null,
+    retail: false,
+    // UI overlay state
+    show_saves: false,
+    compress: false,
     touchLayoutPreset: DEFAULT_TOUCH_LAYOUT_PRESET,
     touchPanSensitivity: DEFAULT_TOUCH_PAN_SENSITIVITY,
     isTouchDevice: false,
