@@ -26,9 +26,14 @@ const readFile = file => new Promise((resolve, reject) => {
 });
 
 async function uploadFile(store, files, file) {
+  if (!file || typeof file.name !== 'string' || !file.name) {
+    throw new TypeError('upload(file) expects a File with a valid name');
+  }
+
   const data = new Uint8Array(await readFile(file));
-  files.set(file.name.toLowerCase(), data);
-  return store.set(file.name.toLowerCase(), data);
+  const key = file.name.toLowerCase();
+  files.set(key, data);
+  return store.set(key, data);
 }
 
 /**
@@ -53,9 +58,20 @@ export default async function create_fs() {
       initError: null,
       files,
       list: () => Array.from(files.keys()).sort(),
-      update: (name, data) => store.set(name, data),
-      delete: name => store.remove(name),
-      clear: () => store.clear(),
+      update: (name, data) => {
+        const key = String(name).toLowerCase();
+        files.set(key, data);
+        return store.set(key, data);
+      },
+      delete: name => {
+        const key = String(name).toLowerCase();
+        files.delete(key);
+        return store.remove(key);
+      },
+      clear: () => {
+        files.clear();
+        return store.clear();
+      },
       download: name => downloadFile(store, name),
       upload: file => uploadFile(store, files, file),
       fileUrl: async name => {

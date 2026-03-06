@@ -58,20 +58,28 @@ describe('create_fs — successful IndexedDB init', () => {
   it('update() delegates to store.set', async () => {
     const fs = await create_fs();
     const data = new Uint8Array([9]);
-    await fs.update('new.sv', data);
+    await fs.update('NEW.SV', data);
     expect(mockStore.set).toHaveBeenCalledWith('new.sv', data);
+    expect(fs.files.get('new.sv')).toBe(data);
   });
 
   it('delete() delegates to store.remove', async () => {
     const fs = await create_fs();
-    await fs.delete('single_0.sv');
+    await fs.delete('SINGLE_0.SV');
     expect(mockStore.remove).toHaveBeenCalledWith('single_0.sv');
+    expect(fs.files.has('single_0.sv')).toBe(false);
   });
 
   it('clear() delegates to store.clear', async () => {
     const fs = await create_fs();
     await fs.clear();
     expect(mockStore.clear).toHaveBeenCalled();
+    expect(fs.files.size).toBe(0);
+  });
+
+  it('upload() validates the file argument', async () => {
+    const fs = await create_fs();
+    await expect(fs.upload(null)).rejects.toThrow(TypeError);
   });
 
   it('fileUrl() returns a blob URL for an existing file', async () => {
