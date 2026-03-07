@@ -65,7 +65,15 @@ npm ci --legacy-peer-deps
 npm start
 ```
 
-The dev server runs at `http://localhost:3000`.
+The dev server runs at `http://localhost:5173`.
+
+To test from another device on your local network (phone/tablet), run:
+
+```bash
+npm start -- --host 0.0.0.0
+```
+
+Then open `http://<your-machine-ip>:5173` on the second device.
 
 For shareware testing, place `spawn.mpq` in `public/`.
 
