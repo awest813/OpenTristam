@@ -152,7 +152,17 @@ export function make_batch(types) {
       }
       return packets;
     },
-    size: packets => packets.reduce((sum, {type, packet}) => sum + packet_size(type, packet), 2),
+    // ⚡ Bolt: Replace O(n) Array.reduce and destructuring with a standard
+    // for loop to avoid anonymous function allocation and inline
+    // property access, significantly reducing GC pressure per batch.
+    size: packets => {
+      let sum = 2;
+      for (let i = 0; i < packets.length; ++i) {
+        const p = packets[i];
+        sum += packet_size(p.type, p.packet);
+      }
+      return sum;
+    },
     write: (writer, packets) => {
       writer.write16(packets.length);
       for (let {type, packet} of packets) {
@@ -180,7 +190,15 @@ export const server_packet = {
       }
       return {games};
     },
-    size: ({games}) => games.reduce((sum, {name}) => sum + 5 + name.length, 2),
+    // ⚡ Bolt: Use explicit for-loop instead of Array.reduce for calculating
+    // total packet size to reduce anonymous function allocation and GC overhead.
+    size: ({games}) => {
+      let sum = 2;
+      for (let i = 0; i < games.length; ++i) {
+        sum += 5 + games[i].name.length;
+      }
+      return sum;
+    },
     write: (writer, {games}) => {
       writer.write16(games.length);
       for (let {type, name} of games) {

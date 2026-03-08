@@ -8,3 +8,6 @@
 ## 2025-03-06 - Optimized buffer_reader property lookups
 **Learning:** Found that `read_packet` allocates an array to call `Object.values(types).find()` for every single multiplayer message parsed, which is a major overhead loop when handling constant multiplayer traffic streams.
 **Action:** Used `WeakMap` mapped to lookup objects matching dictionaries in `src/api/packet.js` to O(1) time complexity. Ensure tight loops avoid re-allocating dynamically generated lookup collections.
+## 2024-03-08 - Array.reduce Performance Overhead in Hot Paths
+**Learning:** Using `Array.reduce` to sum values across arrays introduces significant overhead in hot loops (e.g., packet sizing on every batch generation) compared to a standard `for` loop, likely due to anonymous function allocations and callback invocations per element.
+**Action:** When performing sum aggregations or iterating over arrays in performance-critical areas (like network packet processing), explicitly use a `for` loop to avoid GC overhead.
