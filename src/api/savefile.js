@@ -234,11 +234,11 @@ export class MpqReader {
 }
 
 function getPassword(name) {
-  if (name.match(/spawn\d+\.sv/i)) {
+  if (/spawn\d+\.sv/i.test(name)) {
     return 'lshbkfg1'; // single, spawn
-  } else if (name.match(/share_\d+\.sv/i)) {
+  } else if (/share_\d+\.sv/i.test(name)) {
     return 'lshbkfg1'; // multi, spawn
-  } else if (name.match(/multi_\d+\.sv/i)) {
+  } else if (/multi_\d+\.sv/i.test(name)) {
     return 'szqnlsk1'; // multi, retail
   } else {
     return 'xrgyrkj1'; // single, retail

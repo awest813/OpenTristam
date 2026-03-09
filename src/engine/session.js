@@ -3,14 +3,14 @@ import { mapStackTrace } from 'sourcemapped-stacktrace';
 import ReactGA from 'react-ga';
 
 export function startGame(app, file) {
-  if (file && file.name.match(/\.sv$/i)) {
+  if (file && /\.sv$/i.test(file.name)) {
     app.fs.then(fs => fs.upload(file)).then(() => app.onSaveUploaded());
     return;
   }
   if (app.state.show_saves) {
     return;
   }
-  if (file && !file.name.match(/\.mpq$/i)) {
+  if (file && !/\.mpq$/i.test(file.name)) {
     window.alert('Please select an MPQ file. If you downloaded the installer from GoG, you will need to install it on PC and use the MPQ file from the installation folder.');
     return;
   }
@@ -18,7 +18,7 @@ export function startGame(app, file) {
   app.fileDropTarget.detach();
   app.setState({dropping: 0});
 
-  const retail = !!(file && !file.name.match(/^spawn\.mpq$/i));
+  const retail = !!(file && !/^spawn\.mpq$/i.test(file.name));
   if (process.env.NODE_ENV === 'production') {
     ReactGA.event({
       category: 'Game',

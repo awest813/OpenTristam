@@ -45,7 +45,7 @@ export default class SaveManager extends React.Component {
     const fsApi = await fs;
     const saves = {};
     for (const name of fsApi.files.keys()) {
-      if (name.match(/\.sv$/i)) {
+      if (/\.sv$/i.test(name)) {
         saves[name] = getPlayerName(fsApi.files.get(name), name);
       }
     }
