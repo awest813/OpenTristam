@@ -194,7 +194,7 @@ class App extends React.Component {
         this.setState({has_spawn: true});
       }
       for (const name of fs.files.keys()) {
-        if (name.match(/\.sv$/i)) {
+        if (/\.sv$/i.test(name)) {
           this.setState({has_saves: true});
           break;
         }
@@ -214,7 +214,7 @@ class App extends React.Component {
     const file = getDropFile(e);
     if (file) {
       e.preventDefault();
-      if (this.state.compress && !file.name.match(/\.sv$/i)) {
+      if (this.state.compress && !/\.sv$/i.test(file.name)) {
         this.pendingCompressedFile = file;
         this.flushPendingCompressedFile();
       } else {
