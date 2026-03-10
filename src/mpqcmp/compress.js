@@ -174,7 +174,9 @@ export default async function compress(mpq, progress) {
         input[pos * 6 + 2] = blockTable[index * 4 + 2];
         input[pos * 6 + 3] = blockTable[index * 4 + 3];
         input[pos * 6 + 4] = hash(path_name(name), 3);
-        input[pos * 6 + 5] = name.match(/\.wav$/i) ? 1 : 0;
+        // ⚡ Bolt: Replace String.prototype.match() with RegExp.prototype.test() to avoid
+        // array allocation during this hot loop processing MPQ entries.
+        input[pos * 6 + 5] = /\.wav$/i.test(name) ? 1 : 0;
       });
       task.run = runWorker({binary, mpq: task.data, input, offset: task.min, blockSize}, [task.data, input.buffer], value => {
         task.progress = value;
