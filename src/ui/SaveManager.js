@@ -90,7 +90,12 @@ export default class SaveManager extends React.Component {
     return (
       <DialogFrame className="start" ariaLabel="Manage saves">
         {saveEntries.length === 0 ? (
-          <p className="savesEmpty">No save files found.</p>
+          <div className="savesEmpty" style={{ textAlign: 'center', margin: '20px 0' }}>
+            <p style={{ margin: 0, fontWeight: 'bold' }}>No save files found.</p>
+            <p style={{ fontSize: '0.85em', opacity: 0.8, marginTop: '8px' }}>
+              Upload an existing .sv file below, or start a new game to create one.
+            </p>
+          </div>
         ) : (
           <ul className="saveList">
             {saveEntries.map(([name, info]) => (
