@@ -11,3 +11,7 @@
 ## 2024-03-08 - Array.reduce Performance Overhead in Hot Paths
 **Learning:** Using `Array.reduce` to sum values across arrays introduces significant overhead in hot loops (e.g., packet sizing on every batch generation) compared to a standard `for` loop, likely due to anonymous function allocations and callback invocations per element.
 **Action:** When performing sum aggregations or iterating over arrays in performance-critical areas (like network packet processing), explicitly use a `for` loop to avoid GC overhead.
+
+## 2025-03-12 - Remove intermediate array allocations in WebSocket batching
+**Learning:** In high-frequency operations like WebSocket batching (`src/api/websocket.js`), using `batch.push(msg.slice())` allocates new arrays for every message, increasing garbage collection overhead.
+**Action:** When batching messages, track `batchCount` and `batchSize`, and dynamically resize a pre-allocated `batchBuffer` and write data directly into it using `.set()`. This avoids creating intermediate array copies before assembling the final buffer.

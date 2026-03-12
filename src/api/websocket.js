@@ -48,14 +48,22 @@ async function do_websocket_open(url, handler) {
 }
 
 export default function websocket_open(url, handler, finisher) {
-  let ws = null, batch = [], batchSize = 0, intr = null, batchBuffer = new Uint8Array(1024);
+  let ws = null, batchCount = 0, batchSize = 0, intr = null, batchBuffer = new Uint8Array(1024);
+  let isClosed = false;
   const proxy = {
     get readyState() {
       return ws ? ws.readyState : 0;
     },
     send(msg) {
-      if (!batch) return;
-      batch.push(msg.slice());
+      if (isClosed) return;
+      // ⚡ Bolt: Write directly to batchBuffer, eliminating intermediate array allocations (msg.slice())
+      if (batchSize + msg.byteLength + 3 > batchBuffer.length) {
+        const newBuffer = new Uint8Array(Math.max(batchBuffer.length * 2, batchSize + msg.byteLength + 3));
+        newBuffer.set(batchBuffer.subarray(0, batchSize + 3));
+        batchBuffer = newBuffer;
+      }
+      batchBuffer.set(new Uint8Array(msg instanceof ArrayBuffer ? msg : msg.buffer, msg.byteOffset || 0, msg.byteLength), batchSize + 3);
+      batchCount++;
       batchSize += msg.byteLength;
     },
     close() {
@@ -66,40 +74,32 @@ export default function websocket_open(url, handler, finisher) {
       if (ws) {
         ws.close();
       } else {
-        batch = null;
+        isClosed = true;
+        batchCount = 0;
         batchSize = 0;
       }
     },
   };
   do_websocket_open(url, handler).then(sock => {
     ws = sock;
-    if (batch) {
+    if (!isClosed) {
       intr = setInterval(() => {
-        if (!batch.length) {
+        if (batchCount === 0) {
           return;
-        }
-        // ⚡ Bolt: Reuse a single Uint8Array for batching to eliminate continuous GC allocations.
-        if (batchSize + 3 > batchBuffer.length) {
-          batchBuffer = new Uint8Array(Math.max(batchBuffer.length * 2, batchSize + 3));
         }
         const buffer = batchBuffer;
         buffer[0] = 0;
-        buffer[1] = (batch.length & 0xFF);
-        buffer[2] = batch.length >> 8;
-        let pos = 3;
-        for (let i = 0; i < batch.length; i++) {
-          const msg = batch[i];
-          buffer.set(msg, pos);
-          pos += msg.byteLength;
-        }
+        buffer[1] = (batchCount & 0xFF);
+        buffer[2] = batchCount >> 8;
+
         ws.send(buffer.subarray(0, batchSize + 3));
-        batch.length = 0;
+        batchCount = 0;
         batchSize = 0;
       }, 100);
     } else {
       ws.close();
     }
-    finisher(batch ? 0 : 1);
+    finisher(isClosed ? 1 : 0);
   }, err => {
     finisher(err);
   });
