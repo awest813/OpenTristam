@@ -724,7 +724,7 @@ class App extends React.Component {
           <div className="Body">
             <div className="inner">
               {!error && <canvas ref={this.setCanvas} width={640} height={480}/>}
-              <input type="text" className="keyboard" onChange={this.onKeyboard} onBlur={this.onKeyboardBlur} ref={this.setKeyboard} spellCheck={false} style={this.showKeyboard || {}}/>
+              <input type="text" className="keyboard" aria-label="Game keyboard" onChange={this.onKeyboard} onBlur={this.onKeyboardBlur} ref={this.setKeyboard} spellCheck={false} style={this.showKeyboard || {}}/>
             </div>
           </div>
           <div className="BodyV">
