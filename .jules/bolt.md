@@ -15,3 +15,7 @@
 ## 2025-03-12 - Remove intermediate array allocations in WebSocket batching
 **Learning:** In high-frequency operations like WebSocket batching (`src/api/websocket.js`), using `batch.push(msg.slice())` allocates new arrays for every message, increasing garbage collection overhead.
 **Action:** When batching messages, track `batchCount` and `batchSize`, and dynamically resize a pre-allocated `batchBuffer` and write data directly into it using `.set()`. This avoids creating intermediate array copies before assembling the final buffer.
+
+## 2025-03-24 - Array.map allocations in high-frequency rendering loop
+**Learning:** In high-frequency execution paths (e.g., render loops running at ~20fps like `DApi_renderLegacy.draw_end()`), using `Array.prototype.map()` creates an anonymous closure allocation on every frame, introducing significant garbage collection (GC) pressure.
+**Action:** Replace `Array.prototype.map()` with a pre-allocated `Array` (e.g., `new Array(length)`) and a standard `for` loop to avoid closure allocation and reduce GC overhead.
