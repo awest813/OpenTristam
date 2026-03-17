@@ -57,8 +57,9 @@ export default function StartScreen(props) {
         The game can be purchased from <ExternalLink href="https://www.gog.com/game/diablo">GoG</ExternalLink>.
         {' '}
         <button type="button" className="linkButton" onClick={onCompress}>
-          Click here to compress the MPQ, greatly reducing its size.
+          Compress the MPQ
         </button>
+        {' '}to greatly reduce its size.
       </p>
       {showMobileOnboarding && (
         <div className="mobileOnboarding" role="note" aria-live="polite">
