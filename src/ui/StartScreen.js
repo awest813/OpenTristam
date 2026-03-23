@@ -53,7 +53,7 @@ export default function StartScreen(props) {
         <ExternalLink href="https://github.com/d07RiV/diabloweb">https://github.com/d07RiV/diabloweb</ExternalLink>
       </p>
       <p>
-        If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the button below to start playing.
+        If you own the original game, you can drop the original DIABDAT.MPQ onto this page or select an MPQ file to start playing.
         The game can be purchased from <ExternalLink href="https://www.gog.com/game/diablo">GoG</ExternalLink>.
         {' '}
         <button type="button" className="linkButton" onClick={onCompress}>
