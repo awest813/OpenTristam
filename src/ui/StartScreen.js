@@ -53,7 +53,7 @@ export default function StartScreen(props) {
         <ExternalLink href="https://github.com/d07RiV/diabloweb">https://github.com/d07RiV/diabloweb</ExternalLink>
       </p>
       <p>
-        If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the button below to start playing.
+        If you own the original game, you can drop the original DIABDAT.MPQ onto this page or select a file to start playing.
         The game can be purchased from <ExternalLink href="https://www.gog.com/game/diablo">GoG</ExternalLink>.
         {' '}
         <button type="button" className="linkButton" onClick={onCompress}>
@@ -67,7 +67,7 @@ export default function StartScreen(props) {
           <ul>
             <li>Tap <strong>Select MPQ</strong> to import your retail MPQ file from device storage.</li>
             <li>Use <strong>Play Shareware</strong> for immediate play without importing files.</li>
-            <li>Touch controls appear when you start playing; customize layout below.</li>
+            <li>Touch controls appear when you start playing; customize layout in settings.</li>
           </ul>
           <button type="button" className="linkButton" onClick={onDismissMobileOnboarding}>
             Got it

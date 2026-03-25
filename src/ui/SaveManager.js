@@ -93,7 +93,7 @@ export default class SaveManager extends React.Component {
           <div className="savesEmpty" style={{ textAlign: 'center', margin: '20px 0' }}>
             <p style={{ margin: 0, fontWeight: 'bold' }}>No save files found.</p>
             <p style={{ fontSize: '0.85em', opacity: 0.8, marginTop: '8px' }}>
-              Upload an existing .sv file below, or start a new game to create one.
+              Upload an existing .sv file, or start a new game to create one.
             </p>
           </div>
         ) : (
