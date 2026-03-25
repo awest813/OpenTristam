@@ -89,7 +89,7 @@ export default class CompressMpq extends React.Component {
       <DialogFrame className="start" ariaLabel="Compress MPQ">
         <p>
           You can use this tool to reduce the original MPQ to about half its size. It encodes sounds in MP3 format and uses better compression for regular files.
-          To begin, click the button below or drop the MPQ onto the page.
+          To begin, select an MPQ file or drop it onto the page.
         </p>
         <button type="button" className="startButton" onClick={this.openFilePicker}>Select MPQ</button>
         <input accept=".mpq" type="file" ref={this.fileInputRef} style={{display: "none"}} aria-label="Select MPQ file to compress" onChange={this.parseFile}/>
