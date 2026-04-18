@@ -432,7 +432,9 @@ worker.addEventListener('message', ({data}) => {
     break;
   case MainToWorker.PACKET_BATCH:
     try_api(() => {
-      for (let packet of data.batch) {
+      // ⚡ Bolt: Replace for...of with standard for loop to avoid iterator allocation per batch
+      for (let i = 0; i < data.batch.length; i++) {
+        const packet = data.batch[i];
         const ptr = wasm._DApi_AllocPacket(packet.byteLength);
         wasm.HEAPU8.set(new Uint8Array(packet), ptr);
       }

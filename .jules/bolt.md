@@ -19,3 +19,7 @@
 ## 2025-03-27 - Remove Array.prototype.forEach overhead in hot paths
 **Learning:** Using `Array.prototype.forEach` inside hot loop network packet handlers (like `sendBatch` in `src/api/transportAdapter.js`) causes unnecessary anonymous function allocation, contributing to garbage collection overhead.
 **Action:** Replace `Array.prototype.forEach` with standard `for` loops in performance-critical execution paths.
+
+## 2025-05-24 - Remove for...of loop overhead in hot paths
+**Learning:** Using `for...of` loops over arrays in high-frequency execution paths (like `MainToWorker.PACKET_BATCH` handler) causes unnecessary iterator allocation, contributing to garbage collection overhead.
+**Action:** Replace `for...of` loops with standard `for` loops in performance-critical execution paths.
