@@ -21,6 +21,19 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - High-contrast coverage for install prompt and settings disclosure controls.
+- Storage fallback mutators (`update`, `delete`, `clear`) now reject instead of silently succeeding when IndexedDB is unavailable.
+- Soft recovery and hard error paths dispose the game session cleanly: boot/runtime errors clear loading state, detach stale listeners, and `createGame` exposes `dispose` so audio/websocket/touch teardown is not skipped.
+- Pack upload to the worker copies file buffers before transfer so soft recovery can reuse `fs.files` instead of finding emptied maps after INIT.
+- Save deletes that fail no longer report success; `has_saves` refreshes after delete so empty libraries clear correctly.
+- Persist/download failures in `fsAdapter` surface a notice instead of failing silently.
+- WebSocket version-mismatch and handshake-timeout paths close the socket so reconnect logic is not blocked by a half-open connection.
+- Error reporting timeouts wrap `fileUrl` and `mapStackTrace` so a hung helper cannot leave `handleGameError` waiting forever.
+- MPQ compressor failures stay in the compressor UI with local retry/back instead of jumping to the global crash overlay.
+
+### Added
+
+- Soft recovery from the error overlay: **Try again** / **Back to start** keep packed assets when possible; **Copy details** copies diagnostics; **Reload page** remains for a full reset.
+- Storage banner **Retry storage** to re-probe IndexedDB after a fallback.
 
 ## [1.0.39] - Existing baseline
 

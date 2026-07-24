@@ -3,6 +3,7 @@ import {
   handleGameError,
   handleGameExit,
   handleProgress,
+  resetToStart,
   setCurrentSave,
   setCursorPos,
 } from './session';
@@ -39,19 +40,23 @@ describe('startGame', () => {
     const app = makeApp({ state: { show_saves: false, loading: true, started: false } });
     startGame(app, null);
     expect(app.fileDropTarget.detach).not.toHaveBeenCalled();
-    expect(app.setState).not.toHaveBeenCalled();
+    expect(app.showStartupNotice).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringMatching(/Already loading/i) })
+    );
   });
 
   it('does not launch again once a game has started', () => {
     const app = makeApp({ state: { show_saves: false, loading: false, started: true } });
     startGame(app, null);
     expect(app.fileDropTarget.detach).not.toHaveBeenCalled();
-    expect(app.setState).not.toHaveBeenCalled();
+    expect(app.showStartupNotice).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringMatching(/already running/i) })
+    );
   });
 
   it('imports a .sv save file and reports success', async () => {
     const upload = jest.fn().mockResolvedValue(undefined);
-    const app = makeApp({ fs: Promise.resolve({ upload }) });
+    const app = makeApp({ fs: Promise.resolve({ upload, initError: null }) });
     startGame(app, { name: 'hero.sv' });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(upload).toHaveBeenCalled();
@@ -64,10 +69,21 @@ describe('startGame', () => {
 
   it('reports an error when a .sv import fails', async () => {
     const upload = jest.fn().mockRejectedValue(new Error('bad save'));
-    const app = makeApp({ fs: Promise.resolve({ upload }) });
+    const app = makeApp({ fs: Promise.resolve({ upload, initError: null }) });
     startGame(app, { name: 'broken.sv' });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(app.onSaveUploaded).not.toHaveBeenCalled();
+    expect(app.showStartupNotice).toHaveBeenCalledWith(expect.objectContaining({ tone: 'error' }));
+  });
+
+  it('rejects save import when storage init failed', async () => {
+    const upload = jest.fn();
+    const app = makeApp({
+      fs: Promise.resolve({ upload, initError: new Error('IDB unavailable') }),
+    });
+    startGame(app, { name: 'hero.sv' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(upload).not.toHaveBeenCalled();
     expect(app.showStartupNotice).toHaveBeenCalledWith(expect.objectContaining({ tone: 'error' }));
   });
 });
@@ -78,6 +94,8 @@ describe('handleGameError', () => {
       setState: jest.fn((updater) => {
         if (typeof updater === 'function') updater({ error: null });
       }),
+      runtimeListeners: { detach: jest.fn() },
+      fileDropTarget: { attach: jest.fn() },
       ...overrides,
     };
   }
@@ -85,12 +103,17 @@ describe('handleGameError', () => {
   it('sets the error state with the given message when no stack is provided', async () => {
     const app = makeApp();
     handleGameError(app, 'Something broke');
-    // Allow micro-tasks to flush
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(app.runtimeListeners.detach).toHaveBeenCalled();
+    expect(app.fileDropTarget.attach).toHaveBeenCalled();
     expect(app.setState).toHaveBeenCalled();
     const updater = app.setState.mock.calls[0][0];
     const result = typeof updater === 'function' ? updater({ error: null }) : updater;
-    expect(result).toMatchObject({ error: { message: 'Something broke' } });
+    expect(result).toMatchObject({
+      error: { message: 'Something broke' },
+      loading: false,
+      started: false,
+    });
   });
 
   it('resolves the stack trace via mapStackTrace when a stack is provided', async () => {
@@ -104,23 +127,46 @@ describe('handleGameError', () => {
     const lastUpdater = calls[calls.length - 1][0];
     const result = typeof lastUpdater === 'function' ? lastUpdater({ error: null }) : lastUpdater;
     expect(result.error.stack).toBe('at foo.js:1:2');
+    expect(result.loading).toBe(false);
   });
 
   it('does not overwrite a pre-existing error', async () => {
     const app = makeApp();
-    // Simulate error already set: updater returns falsy when error exists
     app.setState.mockImplementation((updater) => {
       if (typeof updater === 'function') updater({ error: { message: 'previous' } });
     });
     handleGameError(app, 'New error');
     await new Promise((resolve) => setTimeout(resolve, 0));
-    // All setState updaters should have returned falsy (undefined / false)
     const results = app.setState.mock.calls
       .map(([updater]) => updater)
       .filter((updater) => typeof updater === 'function')
       .map((updater) => updater({ error: { message: 'previous' } }));
     expect(results.length).toBeGreaterThan(0);
     results.forEach((result) => expect(result).toBeFalsy());
+  });
+});
+
+describe('resetToStart', () => {
+  it('disposes the game bridge and clears session UI state', () => {
+    const dispose = jest.fn();
+    const app = {
+      game: Object.assign(() => {}, { dispose }),
+      runtimeListeners: { detach: jest.fn() },
+      fileDropTarget: { attach: jest.fn() },
+      setState: jest.fn(),
+    };
+    resetToStart(app);
+    expect(app.runtimeListeners.detach).toHaveBeenCalledTimes(1);
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(app.game).toBeNull();
+    expect(app.fileDropTarget.attach).toHaveBeenCalledTimes(1);
+    expect(app.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        loading: false,
+        started: false,
+        error: null,
+      })
+    );
   });
 });
 

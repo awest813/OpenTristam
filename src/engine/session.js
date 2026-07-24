@@ -2,6 +2,8 @@ import load_game from '../api/loader';
 import { mapStackTrace } from 'sourcemapped-stacktrace';
 import ReactGA from 'react-ga';
 
+const ERROR_SETUP_TIMEOUT_MS = 2000;
+
 /**
  * Surface a transient startup notice through the app, if it exposes one.
  *
@@ -14,10 +16,74 @@ function notify(app, notice) {
   }
 }
 
+function withTimeout(promise, ms, fallbackValue) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(fallbackValue);
+      }
+    }, ms);
+    Promise.resolve(promise).then(
+      (value) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        }
+      },
+      () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(fallbackValue);
+        }
+      }
+    );
+  });
+}
+
+/**
+ * Soft-reset the shell back to the start screen without a full page reload.
+ *
+ * @param {object} app App instance.
+ */
+export function resetToStart(app) {
+  if (app.runtimeListeners && typeof app.runtimeListeners.detach === 'function') {
+    app.runtimeListeners.detach();
+  }
+  if (app.game && typeof app.game.dispose === 'function') {
+    try {
+      app.game.dispose();
+    } catch (e) {
+      // Best-effort cleanup during recovery.
+    }
+  }
+  app.game = null;
+  if (app.fileDropTarget && typeof app.fileDropTarget.attach === 'function') {
+    app.fileDropTarget.attach();
+  }
+  app.setState({
+    loading: false,
+    started: false,
+    error: null,
+    progress: null,
+    compress: false,
+    show_saves: false,
+    dropping: 0,
+  });
+}
+
 export function startGame(app, file) {
   if (file && /\.sv$/i.test(file.name)) {
     app.fs
-      .then((fs) => fs.upload(file))
+      .then((fs) => {
+        if (fs.initError) {
+          throw fs.initError;
+        }
+        return fs.upload(file);
+      })
       .then(() => {
         app.onSaveUploaded();
         notify(app, {
@@ -28,12 +94,18 @@ export function startGame(app, file) {
       .catch(() => {
         notify(app, {
           tone: 'error',
-          message: `Could not import “${file.name}”. Make sure it is a valid .sv save file.`,
+          message: `Could not import “${file.name}”. Make sure it is a valid .sv save file and that browser storage is available.`,
         });
       });
     return;
   }
   if (app.state.show_saves) {
+    if (file) {
+      notify(app, {
+        tone: 'info',
+        message: 'Close Manage Saves first, then drop an MPQ to start the game.',
+      });
+    }
     return;
   }
   if (file && !/\.mpq$/i.test(file.name)) {
@@ -49,6 +121,10 @@ export function startGame(app, file) {
   // mid-load) that would otherwise spawn a second worker and a duplicate
   // multi-megabyte asset download.
   if (app.state.loading || app.state.started) {
+    notify(app, {
+      tone: 'info',
+      message: app.state.loading ? 'Already loading — hang tight.' : 'The game is already running.',
+    });
     return;
   }
 
@@ -63,13 +139,13 @@ export function startGame(app, file) {
     });
   }
 
-  app.setState({ loading: true, retail });
+  app.setState({ loading: true, retail, error: null });
 
   load_game(app, file, !retail).then(
     (game) => {
       app.game = game;
       app.runtimeListeners.attach();
-      app.setState({ started: true });
+      app.setState({ started: true, loading: false });
     },
     (e) => handleGameError(app, e.message, e.stack)
   );
@@ -83,22 +159,57 @@ export function startGame(app, file) {
  * @param {string|undefined} stack Optional stack trace from worker/runtime.
  */
 export function handleGameError(app, message, stack) {
+  if (app.runtimeListeners && typeof app.runtimeListeners.detach === 'function') {
+    app.runtimeListeners.detach();
+  }
+  if (app.fileDropTarget && typeof app.fileDropTarget.attach === 'function') {
+    app.fileDropTarget.attach();
+  }
+
   (async () => {
     const errorObject = { message };
     if (app.saveName) {
-      errorObject.save = await (await app.fs).fileUrl(app.saveName);
+      errorObject.save = await withTimeout(
+        (async () => (await app.fs).fileUrl(app.saveName))(),
+        ERROR_SETUP_TIMEOUT_MS,
+        undefined
+      );
     }
+
+    const applyError = (error) => {
+      app.setState(({ error: existing }) =>
+        !existing
+          ? {
+              error,
+              loading: false,
+              started: false,
+            }
+          : null
+      );
+    };
+
     if (stack) {
-      mapStackTrace(stack, (resolvedStack) => {
-        app.setState(
-          ({ error }) => !error && { error: { ...errorObject, stack: resolvedStack.join('\n') } }
-        );
-      });
+      const mapped = await withTimeout(
+        new Promise((resolve) => {
+          try {
+            mapStackTrace(stack, (resolvedStack) => {
+              resolve(Array.isArray(resolvedStack) ? resolvedStack.join('\n') : stack);
+            });
+          } catch (e) {
+            resolve(stack);
+          }
+        }),
+        ERROR_SETUP_TIMEOUT_MS,
+        stack
+      );
+      applyError({ ...errorObject, stack: mapped });
     } else {
-      app.setState(({ error }) => !error && { error: errorObject });
+      applyError(errorObject);
     }
   })().catch(() => {
-    app.setState(({ error }) => !error && { error: { message } });
+    app.setState(({ error }) =>
+      !error ? { error: { message }, loading: false, started: false } : null
+    );
   });
 }
 

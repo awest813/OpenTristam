@@ -19,6 +19,11 @@ async function do_websocket_open(url, handler) {
   await new Promise((resolve, reject) => {
     const to = setTimeout(() => {
       versionCbk = null;
+      try {
+        socket.close();
+      } catch (_e) {
+        // Ignore close errors during handshake timeout.
+      }
       reject(1);
     }, 5000);
     versionCbk = (data) => {
@@ -30,6 +35,11 @@ async function do_websocket_open(url, handler) {
         if (version === 1) {
           resolve();
         } else {
+          try {
+            socket.close();
+          } catch (_e) {
+            // Ignore close errors on version mismatch.
+          }
           reject(2);
         }
       }

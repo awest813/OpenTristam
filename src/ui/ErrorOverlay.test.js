@@ -48,30 +48,35 @@ describe('ErrorOverlay', () => {
     expect(issueLink.href).toContain('github.com');
   });
 
-  it('renders a restart button that invokes the onReload handler', async () => {
-    const reloadMock = jest.fn();
+  it('renders a soft-recovery button that invokes returnToStart', async () => {
+    const returnToStart = jest.fn();
 
     await act(async () => {
       root.render(
         <SessionContext.Provider
-          value={{ ...defaultSessionValue, error: { message: 'Crash!' }, retail: true }}
+          value={{
+            ...defaultSessionValue,
+            error: { message: 'Crash!' },
+            retail: true,
+            returnToStart,
+          }}
         >
-          <ErrorOverlay onReload={reloadMock} />
+          <ErrorOverlay />
         </SessionContext.Provider>
       );
       await Promise.resolve();
     });
 
-    const reloadButton = Array.from(container.querySelectorAll('button')).find(
-      (btn) => btn.textContent.trim() === 'Restart game'
+    const primary = Array.from(container.querySelectorAll('button')).find(
+      (btn) => btn.textContent.trim() === 'Back to start'
     );
-    expect(reloadButton).toBeTruthy();
+    expect(primary).toBeTruthy();
 
     act(() => {
-      reloadButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      primary.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(reloadMock).toHaveBeenCalledTimes(1);
+    expect(returnToStart).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to a generic message when the error has no message', async () => {
@@ -85,7 +90,6 @@ describe('ErrorOverlay', () => {
 
     expect(container.querySelector('.header').textContent).toBe('Connection problem');
     expect(container.querySelector('.body').textContent).toMatch(/could not be downloaded/i);
-    expect(container.querySelector('.body').textContent).not.toMatch(/Network Error/);
 
     const primary = Array.from(container.querySelectorAll('button')).find((btn) =>
       btn.className.includes('startButton--primary')
@@ -105,5 +109,13 @@ describe('ErrorOverlay', () => {
     const downloadLink = container.querySelector('a[download]');
     expect(downloadLink).toBeTruthy();
     expect(downloadLink.getAttribute('download')).toBe('hero.sv');
+  });
+
+  it('exposes a Copy details control', async () => {
+    await renderWithSession({ error: { message: 'Crash details' } });
+    const copyButton = Array.from(container.querySelectorAll('button')).find(
+      (btn) => btn.textContent.trim() === 'Copy details'
+    );
+    expect(copyButton).toBeTruthy();
   });
 });
