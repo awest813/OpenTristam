@@ -73,7 +73,7 @@ describe('MultiplayerStatusBanner', () => {
     const retryButton = buttons.find((node) => node.textContent === 'Try again');
     const reconnectButton = buttons.find((node) => node.textContent === 'Force reconnect');
     const copySessionButton = buttons.find((node) => node.textContent === 'Copy ID');
-    const copyShareButton = buttons.find((node) => node.textContent === 'Copy invite link');
+    const copyShareButton = buttons.find((node) => node.textContent === 'Copy Invite Link');
     const dismissButton = buttons.find((node) => node.textContent === 'Dismiss');
 
     expect(retryButton).toBeTruthy();
@@ -184,8 +184,8 @@ describe('MultiplayerStatusBanner', () => {
     });
     const buttons = Array.from(container.querySelectorAll('button'));
     const copySessionButton = buttons.find((node) => node.textContent === 'Copy ID');
-    const copyShareButton = buttons.find((node) => node.textContent === 'Copy invite link');
+    const copyShareButton = buttons.find((node) => node.textContent === 'Copy Invite Link');
     expect(copySessionButton.getAttribute('aria-label')).toBe('Copy session ID to clipboard');
-    expect(copyShareButton.getAttribute('aria-label')).toBe('Copy invite link to clipboard');
+    expect(copyShareButton.getAttribute('aria-label')).toBe('Copy share link to clipboard');
   });
 });

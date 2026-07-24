@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 - Soft recovery from the error overlay: **Try again** / **Back to start** keep packed assets when possible; **Copy details** copies diagnostics; **Reload page** remains for a full reset.
 - Storage banner **Retry storage** to re-probe IndexedDB after a fallback.
 - Dismissible service-worker update banner (“Not now”).
+- `touchcancel` cleanup for sticky touch mods and held pan/F-keys.
+- In-game touch gesture tip under Settings / mobile onboarding.
 
 ### Changed
 
@@ -24,7 +26,11 @@ All notable changes to this project will be documented in this file.
 - Drop hints and launch guards give contextual feedback instead of failing silently.
 - Multiplayer copy feedback uses notices instead of overwriting status text; reconnect labeled “Force reconnect”.
 - Compression failures stay in the compressor dialog with Try again / Back.
-
+- Touch pipeline skips shell chrome so mid-game banners stay tappable.
+- F5–F8 and two-finger pan now emit matching key-up events.
+- Fullscreen-on-touch is requested once per session and failures are ignored.
+- Belt slot canvases reuse a single child instead of stacking on remount.
+- Touch pad labels use Move / Right-click / Shift / F5–F8 names.
 ### Fixed
 
 - High-contrast coverage for install prompt and settings disclosure controls.
