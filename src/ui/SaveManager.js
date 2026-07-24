@@ -10,7 +10,7 @@ const PLAYER_CLASSES = ['Warrior', 'Rogue', 'Sorcerer'];
 export default class SaveManager extends React.Component {
   static contextType = SessionContext;
 
-  state = { saves: {}, pendingDelete: null };
+  state = { saves: {}, pendingDelete: null, busy: false };
   lastSavesVersion = null;
   uploadInputRef = React.createRef();
   confirmButtonRef = React.createRef();
@@ -22,6 +22,7 @@ export default class SaveManager extends React.Component {
         this.props.savesVersion != null ? this.props.savesVersion : this.context.savesVersion,
       onClose: this.props.onClose || this.context.closeSaveManager,
       showNotice: this.props.showNotice || this.context.showNotice,
+      onSavesChanged: this.props.onSavesChanged || this.context.refreshSaves,
     };
   }
 
@@ -29,6 +30,13 @@ export default class SaveManager extends React.Component {
     const { showNotice } = this.getSessionValues();
     if (typeof showNotice === 'function') {
       showNotice(notice);
+    }
+  }
+
+  notifySavesChanged() {
+    const { onSavesChanged } = this.getSessionValues();
+    if (typeof onSavesChanged === 'function') {
+      onSavesChanged();
     }
   }
 
@@ -72,6 +80,7 @@ export default class SaveManager extends React.Component {
   }
 
   requestRemoveSave = (name) => {
+    if (this.state.busy) return;
     this.setState({ pendingDelete: name });
   };
 
@@ -80,14 +89,28 @@ export default class SaveManager extends React.Component {
   };
 
   confirmRemoveSave = async (name) => {
-    this.setState({ pendingDelete: null });
+    if (this.state.busy) return;
+    this.setState({ pendingDelete: null, busy: true });
     const { fs } = this.getSessionValues();
-    if (!fs) return;
-    const fsApi = await fs;
-    await fsApi.delete(name.toLowerCase());
-    fsApi.files.delete(name.toLowerCase());
-    this.loadSaves();
-    this.notify({ tone: 'success', message: `Deleted “${name}”.` });
+    if (!fs) {
+      this.setState({ busy: false });
+      return;
+    }
+    try {
+      const fsApi = await fs;
+      await fsApi.delete(name.toLowerCase());
+      await this.loadSaves();
+      this.notifySavesChanged();
+      this.notify({ tone: 'success', message: `Deleted “${name}”.` });
+    } catch (_e) {
+      this.notify({
+        tone: 'error',
+        message: `Couldn’t delete “${name}”. Browser storage may be unavailable.`,
+      });
+      await this.loadSaves();
+    } finally {
+      this.setState({ busy: false });
+    }
   };
 
   onConfirmKeyDown = (event) => {
@@ -100,32 +123,67 @@ export default class SaveManager extends React.Component {
     }
   };
 
-  downloadSave = (name) => {
+  downloadSave = async (name) => {
+    if (this.state.busy) return;
     const { fs } = this.getSessionValues();
     if (!fs) return;
-    fs.then((fsApi) => fsApi.download(name));
+    try {
+      const fsApi = await fs;
+      await fsApi.download(name);
+    } catch (_e) {
+      this.notify({
+        tone: 'error',
+        message: `Couldn’t download “${name}”. The file may be missing or storage is unavailable.`,
+      });
+    }
   };
 
-  uploadSave = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const { fs } = this.getSessionValues();
-      if (!fs) return;
-      fs.then((fsApi) => fsApi.upload(file))
-        .then(() => {
-          this.loadSaves();
-          this.notify({ tone: 'success', message: `Imported “${file.name}”.` });
-        })
-        .catch(() =>
-          this.notify({
-            tone: 'error',
-            message: `Could not import “${file.name}”. Make sure it is a valid .sv save file.`,
-          })
-        );
+  uploadSave = async (e) => {
+    const input = e.target;
+    const file = input.files && input.files[0];
+    // Reset so the same file can be chosen again after a failure/success.
+    input.value = '';
+    if (!file || this.state.busy) {
+      return;
+    }
+    if (!/\.sv$/i.test(file.name)) {
+      this.notify({
+        tone: 'error',
+        message: `“${file.name}” isn’t a .sv save file.`,
+      });
+      return;
+    }
+
+    const { fs } = this.getSessionValues();
+    if (!fs) return;
+
+    this.setState({ busy: true });
+    try {
+      const fsApi = await fs;
+      await fsApi.upload(file);
+      await this.loadSaves();
+      this.notifySavesChanged();
+      const info = getPlayerName(fsApi.files.get(file.name.toLowerCase()), file.name);
+      if (info) {
+        this.notify({ tone: 'success', message: `Imported “${file.name}”.` });
+      } else {
+        this.notify({
+          tone: 'info',
+          message: `Imported “${file.name}”, but hero data couldn’t be read. The file may be damaged.`,
+        });
+      }
+    } catch (_e) {
+      this.notify({
+        tone: 'error',
+        message: `Couldn’t import “${file.name}”. Make sure it’s a valid .sv save file.`,
+      });
+    } finally {
+      this.setState({ busy: false });
     }
   };
 
   openUploadPicker = () => {
+    if (this.state.busy) return;
     if (this.uploadInputRef.current) {
       this.uploadInputRef.current.click();
     }
@@ -133,7 +191,7 @@ export default class SaveManager extends React.Component {
 
   render() {
     const { onClose } = this.getSessionValues();
-    const { saves, pendingDelete } = this.state;
+    const { saves, pendingDelete, busy } = this.state;
     const saveEntries = Object.entries(saves);
     return (
       <DialogFrame
@@ -159,6 +217,7 @@ export default class SaveManager extends React.Component {
               type="button"
               className="startButton savesEmptyCta"
               onClick={this.openUploadPicker}
+              disabled={busy}
             >
               Upload a save
             </button>
@@ -169,10 +228,12 @@ export default class SaveManager extends React.Component {
               <li key={name}>
                 <div className="saveListMeta">
                   <span className="saveName">{name}</span>
-                  {info && (
+                  {info ? (
                     <span className="info">
                       {info.name} (lv. {info.level} {PLAYER_CLASSES[info.cls] ?? 'Unknown'})
                     </span>
+                  ) : (
+                    <span className="info saveMetaUnknown">Hero data unavailable</span>
                   )}
                 </div>
                 {pendingDelete === name ? (
@@ -184,6 +245,7 @@ export default class SaveManager extends React.Component {
                       className="saveIconButton btnConfirmDelete"
                       onClick={() => this.confirmRemoveSave(name)}
                       onKeyDown={this.onConfirmKeyDown}
+                      disabled={busy}
                       aria-label={`Confirm deleting ${name}`}
                     >
                       <FontAwesomeIcon icon={faCheck} />
@@ -194,6 +256,7 @@ export default class SaveManager extends React.Component {
                       className="saveIconButton btnCancelDelete"
                       onClick={this.cancelRemoveSave}
                       onKeyDown={this.onConfirmKeyDown}
+                      disabled={busy}
                       aria-label={`Cancel deleting ${name}`}
                     >
                       <FontAwesomeIcon icon={faTimes} />
@@ -206,6 +269,7 @@ export default class SaveManager extends React.Component {
                       type="button"
                       className="saveIconButton btnDownload"
                       onClick={() => this.downloadSave(name)}
+                      disabled={busy}
                       aria-label={`Download ${name}`}
                       title={`Download ${name}`}
                     >
@@ -216,6 +280,7 @@ export default class SaveManager extends React.Component {
                       type="button"
                       className="saveIconButton btnRemove"
                       onClick={() => this.requestRemoveSave(name)}
+                      disabled={busy}
                       aria-label={`Delete ${name}`}
                       title={`Delete ${name}`}
                     >
@@ -236,7 +301,12 @@ export default class SaveManager extends React.Component {
           >
             Back
           </button>
-          <button type="button" className="startButton" onClick={this.openUploadPicker}>
+          <button
+            type="button"
+            className="startButton"
+            onClick={this.openUploadPicker}
+            disabled={busy}
+          >
             Upload Save
           </button>
         </div>

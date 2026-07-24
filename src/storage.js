@@ -15,8 +15,17 @@ window.addEventListener('message', async ({ data, source, origin }) => {
       break;
     }
     case 'clear': {
-      const { clear } = await fsPromise;
-      clear();
+      if (!source?.postMessage) return;
+      try {
+        const { clear } = await fsPromise;
+        await clear();
+        source.postMessage({ method: 'storage', cleared: true }, origin);
+      } catch (error) {
+        source.postMessage(
+          { method: 'storage', cleared: false, error: String(error && error.message) },
+          origin
+        );
+      }
       break;
     }
     default:

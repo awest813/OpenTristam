@@ -20,7 +20,19 @@ async function do_load_game(api, audio, mpq, spawn) {
 
   const audioAdapter = createAudioAdapter(audio);
   const renderAdapter = createRenderAdapter(api.canvas, (belt) => api.updateBelt(belt));
-  const fsAdapter = createFsAdapter(fs);
+  const fsAdapter = createFsAdapter(fs, {
+    onPersistError: () => {
+      if (typeof api.onStorageFailure === 'function') {
+        api.onStorageFailure();
+      } else if (typeof api.showStartupNotice === 'function') {
+        api.showStartupNotice({
+          tone: 'error',
+          message:
+            'Couldn’t save progress to browser storage. Check available space and try again.',
+        });
+      }
+    },
+  });
 
   // Pause canvas rendering while the tab is hidden to reduce idle CPU load.
   // The game simulation in the worker is unaffected — only draw calls are
@@ -75,6 +87,7 @@ async function do_load_game(api, audio, mpq, spawn) {
         document.removeEventListener('visibilitychange', onVisibilityChange);
         transport.dispose();
         multiplayerTransport.dispose();
+        audioAdapter.dispose();
         if (!workerTerminated) {
           workerTerminated = true;
           worker.terminate();
@@ -97,6 +110,8 @@ async function do_load_game(api, audio, mpq, spawn) {
               };
               gameApi.getMultiplayerDiagnostics = () => diagnostics.getEvents();
               gameApi.getMultiplayerStatus = () => diagnostics.getStatus();
+              // Soft recovery (Back to start) needs an explicit dispose hook.
+              gameApi.dispose = dispose;
               resolve(gameApi);
             }
             break;
@@ -120,12 +135,10 @@ async function do_load_game(api, audio, mpq, spawn) {
             break;
           case WorkerToMain.ERROR:
             dispose();
-            audioAdapter.dispose();
             api.onError(data.error, data.stack);
             break;
           case WorkerToMain.FAILED:
             dispose();
-            audioAdapter.dispose();
             reject({ message: data.error, stack: data.stack });
             break;
           case WorkerToMain.PROGRESS:
@@ -148,21 +161,25 @@ async function do_load_game(api, audio, mpq, spawn) {
         }
       });
 
+      // Copy buffers before transfer so main-thread fs.files stays usable for
+      // Save Manager and soft recovery after the worker boots.
+      const filesPayload = new Map();
       const transfer = [];
-      for (let [, file] of fs.files) {
-        transfer.push(file.buffer);
+      for (const [name, file] of fs.files) {
+        const copy = file.slice();
+        filesPayload.set(name, copy);
+        transfer.push(copy.buffer);
       }
       worker.postMessage(
         {
           action: MainToWorker.INIT,
-          files: fs.files,
+          files: filesPayload,
           mpq,
           spawn,
           offscreen: renderAdapter.offscreen,
         },
         transfer
       );
-      delete fs.files;
     } catch (e) {
       reject(e);
     }

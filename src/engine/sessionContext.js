@@ -45,6 +45,7 @@ export const defaultSessionValue = {
   highContrastMode: false,
   setHighContrastMode: noop,
   showNotice: noop,
+  refreshSaves: noop,
   // PWA
   showInstallPrompt: false,
   dismissInstallPrompt: noop,

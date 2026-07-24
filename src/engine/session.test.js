@@ -49,15 +49,20 @@ describe('startGame', () => {
     expect(app.setState).not.toHaveBeenCalled();
   });
 
-  it('imports a .sv save file and reports success', async () => {
-    const upload = jest.fn().mockResolvedValue(undefined);
-    const app = makeApp({ fs: Promise.resolve({ upload }) });
+  it('imports a .sv save file and reports a notice', async () => {
+    const files = new Map();
+    const upload = jest.fn(async (file) => {
+      files.set(file.name.toLowerCase(), new Uint8Array([1]));
+    });
+    const app = makeApp({ fs: Promise.resolve({ upload, files }) });
     startGame(app, { name: 'hero.sv' });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(upload).toHaveBeenCalled();
     expect(app.onSaveUploaded).toHaveBeenCalledTimes(1);
     expect(app.showStartupNotice).toHaveBeenCalledWith(
-      expect.objectContaining({ tone: 'success' })
+      expect.objectContaining({
+        message: expect.stringMatching(/Imported/),
+      })
     );
     expect(app.fileDropTarget.detach).not.toHaveBeenCalled();
   });

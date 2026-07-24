@@ -261,18 +261,24 @@ class App extends React.Component {
 
     this.fs.then((fs) => {
       if (fs.initError) {
-        this.setState({ storageError: fs.initError.message || String(fs.initError) });
+        this.setState({
+          storageError:
+            'Save storage isn’t available in this browser — progress won’t be kept between sessions. You can still play.',
+        });
+      }
+      if (typeof fs.subscribe === 'function') {
+        this._unsubscribeFs = fs.subscribe((change) => {
+          // Another tab mutated saves/assets — refresh list flags.
+          if (change && change.source === 'remote') {
+            this.refreshSaves();
+          }
+        });
       }
       const spawn = fs.files.get('spawn.mpq');
       if (spawn && SpawnSizes.includes(spawn.byteLength)) {
         this.setState({ has_spawn: true });
       }
-      for (const name of fs.files.keys()) {
-        if (/\.sv$/i.test(name)) {
-          this.setState({ has_saves: true });
-          break;
-        }
-      }
+      this.refreshSaves();
     });
   }
 
@@ -280,6 +286,18 @@ class App extends React.Component {
     if (this.startupNoticeTimer) {
       clearTimeout(this.startupNoticeTimer);
       this.startupNoticeTimer = null;
+    }
+    if (typeof this._unsubscribeFs === 'function') {
+      this._unsubscribeFs();
+      this._unsubscribeFs = null;
+    }
+    if (this._errorSaveUrl) {
+      try {
+        URL.revokeObjectURL(this._errorSaveUrl);
+      } catch (_e) {
+        // ignore
+      }
+      this._errorSaveUrl = null;
     }
     this.fileDropTarget.detach();
     this.runtimeListeners.detach();
@@ -544,8 +562,38 @@ class App extends React.Component {
   };
 
   onSaveUploaded() {
-    this.setState((s) => ({ savesVersion: s.savesVersion + 1, has_saves: true }));
+    this.refreshSaves();
   }
+
+  refreshSaves = async () => {
+    try {
+      const fs = await this.fs;
+      let has = false;
+      for (const name of fs.files.keys()) {
+        if (/\.sv$/i.test(name)) {
+          has = true;
+          break;
+        }
+      }
+      this.setState((s) => ({
+        has_saves: has,
+        savesVersion: s.savesVersion + 1,
+      }));
+    } catch (_e) {
+      this.setState((s) => ({ has_saves: false, savesVersion: s.savesVersion + 1 }));
+    }
+  };
+
+  onStorageFailure = () => {
+    this.setState({
+      storageError:
+        'Couldn’t write to browser storage — progress may not be kept. Check available space or try another browser.',
+    });
+    this.showStartupNotice({
+      tone: 'error',
+      message: 'Couldn’t save progress to browser storage. Check available space and try again.',
+    });
+  };
 
   openSaveManager = () => this.setState({ show_saves: true });
   closeSaveManager = () => this.setState({ show_saves: false });
@@ -626,6 +674,7 @@ class App extends React.Component {
       highContrastMode,
       setHighContrastMode: this.setHighContrastMode,
       showNotice: this.showStartupNotice,
+      refreshSaves: this.refreshSaves,
       // PWA
       showInstallPrompt: installPromptAvailable && !installPromptDismissed,
       dismissInstallPrompt: this.dismissInstallPrompt,
@@ -937,8 +986,7 @@ class App extends React.Component {
           )}
           {this.state.storageError && (
             <div className="storageBanner" role="alert" aria-live="assertive" aria-atomic="true">
-              Save storage unavailable — game progress will not be saved.{' '}
-              <small>({this.state.storageError})</small>
+              {this.state.storageError}
             </div>
           )}
           <MultiplayerStatusBanner />

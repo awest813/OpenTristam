@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - High-contrast coverage for install prompt and settings disclosure controls.
+- Save/load and browser storage edge cases: honest IndexedDB fallback rejects, persist-before-map updates, Safari write probe, delayed download URL revoke, error-overlay blob cleanup, in-game persist failure notices, `has_saves` refresh after delete/import, multi-tab save list sync, `.sv`-only uploads, and drop `getAsFile()` null fallback.
 
 ## [1.0.39] - Existing baseline
 
