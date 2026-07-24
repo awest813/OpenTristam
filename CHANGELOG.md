@@ -29,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - WebSocket version-mismatch and handshake-timeout paths close the socket so reconnect logic is not blocked by a half-open connection.
 - Error reporting timeouts wrap `fileUrl` and `mapStackTrace` so a hung helper cannot leave `handleGameError` waiting forever.
 - MPQ compressor failures stay in the compressor UI with local retry/back instead of jumping to the global crash overlay.
+- Save/load and browser storage edge cases: persist-before-map updates, Safari write probe, delayed download URL revoke, error-overlay blob cleanup, multi-tab save list sync, `.sv`-only uploads, and drop `getAsFile()` null fallback.
 
 ### Added
 

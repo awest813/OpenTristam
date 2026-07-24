@@ -21,14 +21,15 @@ async function do_load_game(api, audio, mpq, spawn) {
   const audioAdapter = createAudioAdapter(audio);
   const renderAdapter = createRenderAdapter(api.canvas, (belt) => api.updateBelt(belt));
   const fsAdapter = createFsAdapter(fs, {
-    onError: (message) => {
-      if (typeof api.showStartupNotice === 'function') {
+    onPersistError: () => {
+      if (typeof api.onStorageFailure === 'function') {
+        api.onStorageFailure();
+      } else if (typeof api.showStartupNotice === 'function') {
         api.showStartupNotice({
           tone: 'error',
-          message: `Could not write save data: ${message}`,
+          message:
+            'Couldn’t save progress to browser storage. Check available space and try again.',
         });
-      } else if (typeof api.onError === 'function') {
-        api.onError(message);
       }
     },
   });
@@ -161,11 +162,10 @@ async function do_load_game(api, audio, mpq, spawn) {
         }
       });
 
-      // Copy file buffers for transfer so the main-thread Map stays usable for
-      // Manage Saves / soft recovery. Transferring the originals would neuter
-      // them (and historically we also deleted fs.files entirely).
-      const transfer = [];
+      // Copy buffers before transfer so main-thread fs.files stays usable for
+      // Save Manager and soft recovery after the worker boots.
       const filesPayload = new Map();
+      const transfer = [];
       for (const [name, file] of fs.files) {
         const copy = file.slice();
         filesPayload.set(name, copy);

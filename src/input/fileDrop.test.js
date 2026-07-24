@@ -29,6 +29,19 @@ describe('fileDrop utilities', () => {
     expect(getDropFile(event)).toBe(file);
   });
 
+  it('falls back to dataTransfer.files when getAsFile returns null', () => {
+    const file = { name: 'hero.sv' };
+    const event = {
+      dataTransfer: {
+        items: [{ kind: 'file', getAsFile: () => null }],
+        files: [file],
+      },
+    };
+
+    expect(isDropFile(event)).toBe(true);
+    expect(getDropFile(event)).toBe(file);
+  });
+
   it('returns false when no files are present', () => {
     const event = {
       dataTransfer: {

@@ -9,24 +9,32 @@
 
 /**
  * @param {object} fs  The storage service object returned by create_fs().
- * @param {{onError?: function}} [hooks] Optional error sink for failed writes.
+ * @param {{ onPersistError?: (error: Error, func: string) => void }} [options]
  * @returns {{ handleFs: function }}
  */
-export function createFsAdapter(fs, hooks = {}) {
-  const onError = hooks.onError || (() => {});
+export function createFsAdapter(fs, options = {}) {
+  const { onPersistError } = options;
   return {
     handleFs({ func, params }) {
-      if (!fs || typeof fs[func] !== 'function') {
+      if (typeof fs[func] !== 'function') {
         return;
       }
+      let result;
       try {
-        const result = fs[func](...(params || []));
-        Promise.resolve(result).catch((error) => {
-          onError(error && error.message ? error.message : 'Save storage write failed');
-        });
+        result = fs[func](...params);
       } catch (error) {
-        onError(error && error.message ? error.message : 'Save storage write failed');
+        if (typeof onPersistError === 'function') {
+          onPersistError(error, func);
+        }
+        return;
       }
+      // Support both sync and async storage backends; catch async rejections
+      // so quota / private-mode write failures cannot become unhandled.
+      Promise.resolve(result).catch((error) => {
+        if (typeof onPersistError === 'function') {
+          onPersistError(error, func);
+        }
+      });
     },
   };
 }

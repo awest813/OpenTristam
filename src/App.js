@@ -263,18 +263,24 @@ class App extends React.Component {
 
     this.fs.then((fs) => {
       if (fs.initError) {
-        this.setState({ storageError: fs.initError.message || String(fs.initError) });
+        this.setState({
+          storageError:
+            'Save storage isn’t available in this browser — progress won’t be kept between sessions. You can still play.',
+        });
+      }
+      if (typeof fs.subscribe === 'function') {
+        this._unsubscribeFs = fs.subscribe((change) => {
+          // Another tab mutated saves/assets — refresh list flags.
+          if (change && change.source === 'remote') {
+            this.refreshSaves();
+          }
+        });
       }
       const spawn = fs.files.get('spawn.mpq');
       if (spawn && SpawnSizes.includes(spawn.byteLength)) {
         this.setState({ has_spawn: true });
       }
-      for (const name of fs.files.keys()) {
-        if (/\.sv$/i.test(name)) {
-          this.setState({ has_saves: true });
-          break;
-        }
-      }
+      this.refreshSaves();
     });
   }
 
@@ -282,6 +288,18 @@ class App extends React.Component {
     if (this.startupNoticeTimer) {
       clearTimeout(this.startupNoticeTimer);
       this.startupNoticeTimer = null;
+    }
+    if (typeof this._unsubscribeFs === 'function') {
+      this._unsubscribeFs();
+      this._unsubscribeFs = null;
+    }
+    if (this._errorSaveUrl) {
+      try {
+        URL.revokeObjectURL(this._errorSaveUrl);
+      } catch (_e) {
+        // ignore
+      }
+      this._errorSaveUrl = null;
     }
     this.fileDropTarget.detach();
     this.runtimeListeners.detach();
@@ -578,6 +596,16 @@ class App extends React.Component {
     try {
       const fs = await create_fs();
       this.fs = Promise.resolve(fs);
+      if (typeof this._unsubscribeFs === 'function') {
+        this._unsubscribeFs();
+      }
+      if (typeof fs.subscribe === 'function') {
+        this._unsubscribeFs = fs.subscribe((change) => {
+          if (change && change.source === 'remote') {
+            this.refreshSaves();
+          }
+        });
+      }
       let hasSaves = false;
       for (const name of fs.files.keys()) {
         if (/\.sv$/i.test(name)) {
@@ -586,7 +614,9 @@ class App extends React.Component {
         }
       }
       this.setState({
-        storageError: fs.initError ? fs.initError.message || String(fs.initError) : null,
+        storageError: fs.initError
+          ? 'Save storage isn’t available in this browser — progress won’t be kept between sessions. You can still play.'
+          : null,
         storageRetrying: false,
         has_saves: hasSaves,
         savesVersion: this.state.savesVersion + 1,
@@ -600,9 +630,22 @@ class App extends React.Component {
     } catch (e) {
       this.setState({
         storageRetrying: false,
-        storageError: e.message || String(e),
+        storageError:
+          e.message ||
+          'Save storage isn’t available in this browser — progress won’t be kept between sessions. You can still play.',
       });
     }
+  };
+
+  onStorageFailure = () => {
+    this.setState({
+      storageError:
+        'Couldn’t write to browser storage — progress may not be kept. Check available space or try another browser.',
+    });
+    this.showStartupNotice({
+      tone: 'error',
+      message: 'Couldn’t save progress to browser storage. Check available space and try again.',
+    });
   };
 
   openSaveManager = () => this.setState({ show_saves: true });
@@ -993,10 +1036,7 @@ class App extends React.Component {
           )}
           {this.state.storageError && (
             <div className="storageBanner" role="alert" aria-live="assertive" aria-atomic="true">
-              <span>
-                Storage is read-only — saves will not persist.{' '}
-                <small>({this.state.storageError})</small>
-              </span>
+              <span>{this.state.storageError}</span>
               <button
                 type="button"
                 className="storageBanner-retry"

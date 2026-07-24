@@ -1,6 +1,7 @@
 import load_game from '../api/loader';
 import { mapStackTrace } from 'sourcemapped-stacktrace';
 import ReactGA from 'react-ga';
+import getPlayerName from '../api/savefile';
 
 const ERROR_SETUP_TIMEOUT_MS = 2000;
 
@@ -44,6 +45,17 @@ function withTimeout(promise, ms, fallbackValue) {
   });
 }
 
+function revokeErrorSaveUrl(app) {
+  if (app && app._errorSaveUrl) {
+    try {
+      URL.revokeObjectURL(app._errorSaveUrl);
+    } catch (_e) {
+      // ignore
+    }
+    app._errorSaveUrl = null;
+  }
+}
+
 /**
  * Soft-reset the shell back to the start screen without a full page reload.
  *
@@ -61,6 +73,7 @@ export function resetToStart(app) {
     }
   }
   app.game = null;
+  revokeErrorSaveUrl(app);
   if (app.fileDropTarget && typeof app.fileDropTarget.attach === 'function') {
     app.fileDropTarget.attach();
   }
@@ -84,17 +97,31 @@ export function startGame(app, file) {
         }
         return fs.upload(file);
       })
-      .then(() => {
-        app.onSaveUploaded();
-        notify(app, {
-          tone: 'success',
-          message: `Imported save “${file.name}”. Open Manage Saves to download or remove it.`,
-        });
+      .then(async () => {
+        if (typeof app.refreshSaves === 'function') {
+          await app.refreshSaves();
+        } else if (typeof app.onSaveUploaded === 'function') {
+          app.onSaveUploaded();
+        }
+        const fs = await app.fs;
+        const data = fs.files && fs.files.get(file.name.toLowerCase());
+        const info = data ? getPlayerName(data, file.name) : null;
+        if (info) {
+          notify(app, {
+            tone: 'success',
+            message: `Imported save “${file.name}”. Open Manage Saves to download or remove it.`,
+          });
+        } else {
+          notify(app, {
+            tone: 'info',
+            message: `Imported “${file.name}”, but hero data couldn’t be read. The file may be damaged.`,
+          });
+        }
       })
       .catch(() => {
         notify(app, {
           tone: 'error',
-          message: `Could not import “${file.name}”. Make sure it is a valid .sv save file and that browser storage is available.`,
+          message: `Couldn’t import “${file.name}”. Make sure it’s a valid .sv save file and that browser storage is available.`,
         });
       });
     return;
@@ -112,7 +139,7 @@ export function startGame(app, file) {
     notify(app, {
       tone: 'error',
       message:
-        'That is not an MPQ file. Diablo data comes as DIABDAT.MPQ — if you have a GoG installer, install it on PC first and use the MPQ from the install folder.',
+        'That isn’t an MPQ file. Use DIABDAT.MPQ from a Diablo install (for example from GOG), or drop a .sv save instead.',
     });
     return;
   }
@@ -167,13 +194,18 @@ export function handleGameError(app, message, stack) {
   }
 
   (async () => {
+    revokeErrorSaveUrl(app);
     const errorObject = { message };
     if (app.saveName) {
-      errorObject.save = await withTimeout(
+      const url = await withTimeout(
         (async () => (await app.fs).fileUrl(app.saveName))(),
         ERROR_SETUP_TIMEOUT_MS,
         undefined
       );
+      if (url) {
+        app._errorSaveUrl = url;
+        errorObject.save = url;
+      }
     }
 
     const applyError = (error) => {
@@ -221,6 +253,7 @@ export function handleGameError(app, message, stack) {
  */
 export function handleGameExit(app, reloadFn = () => window.location.reload()) {
   if (!app.state.error) {
+    revokeErrorSaveUrl(app);
     reloadFn();
   }
 }

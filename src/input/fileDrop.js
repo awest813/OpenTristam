@@ -24,7 +24,11 @@ export function getDropFile(e) {
   if (dataTransfer.items) {
     for (let i = 0; i < dataTransfer.items.length; ++i) {
       if (dataTransfer.items[i].kind === 'file') {
-        return dataTransfer.items[i].getAsFile();
+        const file = dataTransfer.items[i].getAsFile();
+        // Some browsers report kind === 'file' but return null from getAsFile().
+        if (file) {
+          return file;
+        }
       }
     }
   }

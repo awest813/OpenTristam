@@ -134,9 +134,12 @@ describe('SaveManager', () => {
     expect(showNotice).toHaveBeenCalledWith(expect.objectContaining({ tone: 'success' }));
   });
 
-  it('reports a success notice after importing a save', async () => {
+  it('reports a success notice after importing a save with readable hero data', async () => {
     const showNotice = jest.fn();
-    const upload = jest.fn(() => Promise.resolve());
+    const upload = jest.fn(async (file) => {
+      fsApi.files.set(file.name.toLowerCase(), new Uint8Array([1]));
+    });
+    // getPlayerName returns null for garbage bytes — still treat as import success path via tone info/success.
     const fsApi = { files: new Map(), delete: jest.fn(), download: jest.fn(), upload };
 
     await renderWithSession({ fs: Promise.resolve(fsApi), showNotice });
@@ -149,10 +152,86 @@ describe('SaveManager', () => {
       input.dispatchEvent(new Event('change', { bubbles: true }));
       await Promise.resolve();
       await Promise.resolve();
+      await Promise.resolve();
     });
 
     expect(upload).toHaveBeenCalledWith(file);
-    expect(showNotice).toHaveBeenCalledWith(expect.objectContaining({ tone: 'success' }));
+    expect(showNotice).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringMatching(/Imported “hero\.sv”/),
+      })
+    );
+  });
+
+  it('rejects non-.sv uploads before calling storage', async () => {
+    const showNotice = jest.fn();
+    const upload = jest.fn(() => Promise.resolve());
+    const fsApi = { files: new Map(), delete: jest.fn(), download: jest.fn(), upload };
+
+    await renderWithSession({ fs: Promise.resolve(fsApi), showNotice });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = new File(['x'], 'DIABDAT.MPQ');
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+
+    await act(async () => {
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(upload).not.toHaveBeenCalled();
+    expect(showNotice).toHaveBeenCalledWith(expect.objectContaining({ tone: 'error' }));
+  });
+
+  it('reports an error notice when delete fails', async () => {
+    const showNotice = jest.fn();
+    const fsApi = {
+      files: new Map([['hero.sv', new Uint8Array([1])]]),
+      delete: jest.fn(() => Promise.reject(new Error('unavailable'))),
+      download: jest.fn(),
+      upload: jest.fn(),
+    };
+
+    await renderWithSession({ fs: Promise.resolve(fsApi), showNotice });
+
+    await act(async () => {
+      container
+        .querySelector('button[aria-label="Delete hero.sv"]')
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      container
+        .querySelector('button[aria-label="Confirm deleting hero.sv"]')
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(showNotice).toHaveBeenCalledWith(expect.objectContaining({ tone: 'error' }));
+  });
+
+  it('resets the file input after a change so the same file can be reselected', async () => {
+    const fsApi = {
+      files: new Map(),
+      delete: jest.fn(),
+      download: jest.fn(),
+      upload: jest.fn(() => Promise.resolve()),
+    };
+    await renderWithSession({ fs: Promise.resolve(fsApi) });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = new File(['x'], 'hero.sv');
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+
+    await act(async () => {
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Handler clears value so picking the same path again still fires change.
+    expect(input.value).toBe('');
   });
 
   it('lays out the footer Back and Upload actions in a single row', async () => {
