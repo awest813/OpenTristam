@@ -145,7 +145,8 @@ export default function StartScreen(props) {
           <div className="mobileOnboardingTitle">Mobile tip</div>
           <p className="mobileOnboardingLead">
             Use <strong>Play Shareware</strong> for an immediate try, or <strong>Select MPQ</strong>{' '}
-            to import retail data from device storage. Touch controls appear once the game starts.
+            to import retail data. In game: tap to click, long-press for right-click, two-finger
+            drag to pan, and open <strong>Settings</strong> below for layout and pan sensitivity.
           </p>
           <button type="button" className="linkButton" onClick={onDismissMobileOnboarding}>
             Got it
@@ -159,6 +160,10 @@ export default function StartScreen(props) {
           {isTouchDevice && (
             <div className="touchSettings" role="group" aria-label="Touch settings">
               <div className="touchSettingsTitle">Touch</div>
+              <p className="touchSettingsHint">
+                In game: tap to click, long-press for right-click, two-finger drag to pan. Sticky
+                Move / Right-click / Shift pads stay active until tapped again.
+              </p>
               <label className="touchSettingsRow">
                 <span>Layout preset</span>
                 <select

@@ -140,6 +140,9 @@ Validated on April 18, 2026:
 - ✅ Better two-finger pan sensitivity calibration (low/normal/high thresholds)
 - ✅ Gesture conflict handling (tap/pan/long-press)
 - ✅ First-run onboarding for MPQ import on mobile (dismissible and persisted)
+- ✅ `touchcancel` cleanup + shell-chrome hit-test bypass for mid-game UI
+- ✅ F-key and pan arrow key-up pairing; once-per-session fullscreen request
+- ✅ Safe-area offsets for F-key pads; clearer control labels and gesture tip
 
 ### Accessibility
 

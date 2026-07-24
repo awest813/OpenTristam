@@ -15,6 +15,8 @@ import {
   beginTouchGesture,
   cancelTouchGesture,
   finishTouchGesture,
+  isUiChromeTouchTarget,
+  releaseTouchInputState,
   setTouchMod as applyTouchMod,
   updateTouchGesture,
   updateTouchButton as applyTouchButtonUpdate,
@@ -176,6 +178,12 @@ class App extends React.Component {
         target: document,
         event: 'touchend',
         handler: this.onTouchEnd,
+        options: touchListenerOptions,
+      },
+      {
+        target: document,
+        event: 'touchcancel',
+        handler: this.onTouchCancel,
         options: touchListenerOptions,
       },
       { target: document, event: 'pointerlockchange', handler: this.onPointerLockChange },
@@ -686,13 +694,31 @@ class App extends React.Component {
     return performance.now();
   }
 
+  shouldBypassGameTouch(e) {
+    return isUiChromeTouchTarget(e.target) || e.target === this.keyboard;
+  }
+
+  requestTouchFullscreen() {
+    if (this.touchFullscreenRequested || !this.element || document.fullscreenElement) {
+      return;
+    }
+    this.touchFullscreenRequested = true;
+    const req = this.element.requestFullscreen && this.element.requestFullscreen();
+    if (req && typeof req.catch === 'function') {
+      req.catch(() => {
+        // Fullscreen can be blocked by the browser; gameplay continues windowed.
+      });
+    }
+  }
+
   // ─── Touch events ───────────────────────────────────────────────────────────
 
   onTouchStart = (e) => {
     if (!this.canvas) return;
-    if (e.target === this.keyboard) {
+    if (this.shouldBypassGameTouch(e)) {
       return;
-    } else {
+    }
+    if (this.keyboard) {
       this.keyboard.blur();
     }
     e.preventDefault();
@@ -714,7 +740,7 @@ class App extends React.Component {
 
   onTouchMove = (e) => {
     if (!this.canvas) return;
-    if (e.target === this.keyboard) {
+    if (this.shouldBypassGameTouch(e)) {
       return;
     }
     e.preventDefault();
@@ -747,6 +773,12 @@ class App extends React.Component {
 
   onTouchEnd = (e) => {
     if (!this.canvas) return;
+    if (this.shouldBypassGameTouch(e)) {
+      // Still sync remaining fingers so pad state cannot stick when a chrome
+      // touch ends while another finger is on a control.
+      applyTouchButtonUpdate(this, e.touches, true);
+      return;
+    }
     if (e.target !== this.keyboard) {
       e.preventDefault();
     }
@@ -790,9 +822,19 @@ class App extends React.Component {
     ) {
       cancelTouchGesture(this);
     }
-    if (!document.fullscreenElement) {
-      this.element.requestFullscreen();
+    this.requestTouchFullscreen();
+  };
+
+  onTouchCancel = (e) => {
+    if (!this.canvas) return;
+    // Interrupted touches must not leave Move/RMB/Shift or arrow keys stuck.
+    if (this.touchCanvas && this.game) {
+      const { x, y } = getMousePos(this, this.touchCanvas);
+      const mods = this.eventMods(e);
+      this.game('DApi_Mouse', 2, 1, mods, x, y);
+      this.game('DApi_Mouse', 2, 2, mods, x, y);
     }
+    releaseTouchInputState(this);
   };
 
   // ─── Ref setters ────────────────────────────────────────────────────────────
@@ -814,10 +856,13 @@ class App extends React.Component {
   setTouchBelt_(i, e) {
     this.touchButtons[i] = e;
     if (e) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 28;
-      canvas.height = 28;
-      e.appendChild(canvas);
+      let canvas = e.querySelector('canvas');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.width = 28;
+        canvas.height = 28;
+        e.appendChild(canvas);
+      }
       this.touchCtx[i] = canvas.getContext('2d');
     } else {
       this.touchCtx[i] = null;
@@ -977,7 +1022,7 @@ class App extends React.Component {
               ref={this.setTouch0}
               role="button"
               tabIndex={-1}
-              aria-label="Touch Mod 1"
+              aria-label="Move"
               aria-hidden="true"
             />
             <div
@@ -987,7 +1032,7 @@ class App extends React.Component {
               ref={this.setTouch1}
               role="button"
               tabIndex={-1}
-              aria-label="Touch Mod 2"
+              aria-label="Right-click"
               aria-hidden="true"
             />
             <div
@@ -997,7 +1042,7 @@ class App extends React.Component {
               ref={this.setTouch2}
               role="button"
               tabIndex={-1}
-              aria-label="Touch Mod 3"
+              aria-label="Shift"
               aria-hidden="true"
             />
           </div>
@@ -1007,7 +1052,7 @@ class App extends React.Component {
               ref={this.setTouch3}
               role="button"
               tabIndex={-1}
-              aria-label="Belt Slot 1"
+              aria-label="Belt slot 1"
               aria-hidden="true"
             />
             <div
@@ -1015,7 +1060,7 @@ class App extends React.Component {
               ref={this.setTouch4}
               role="button"
               tabIndex={-1}
-              aria-label="Belt Slot 2"
+              aria-label="Belt slot 2"
               aria-hidden="true"
             />
             <div
@@ -1023,7 +1068,7 @@ class App extends React.Component {
               ref={this.setTouch5}
               role="button"
               tabIndex={-1}
-              aria-label="Belt Slot 3"
+              aria-label="Belt slot 3"
               aria-hidden="true"
             />
           </div>
@@ -1033,7 +1078,7 @@ class App extends React.Component {
               ref={this.setTouch6}
               role="button"
               tabIndex={-1}
-              aria-label="F-Key Left 1"
+              aria-label="F5"
               aria-hidden="true"
             />
             <div
@@ -1041,7 +1086,7 @@ class App extends React.Component {
               ref={this.setTouch7}
               role="button"
               tabIndex={-1}
-              aria-label="F-Key Left 2"
+              aria-label="F6"
               aria-hidden="true"
             />
           </div>
@@ -1051,7 +1096,7 @@ class App extends React.Component {
               ref={this.setTouch8}
               role="button"
               tabIndex={-1}
-              aria-label="F-Key Right 1"
+              aria-label="F7"
               aria-hidden="true"
             />
             <div
@@ -1059,7 +1104,7 @@ class App extends React.Component {
               ref={this.setTouch9}
               role="button"
               tabIndex={-1}
-              aria-label="F-Key Right 2"
+              aria-label="F8"
               aria-hidden="true"
             />
           </div>

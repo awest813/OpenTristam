@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 - Community issue and pull request templates.
 - Collapsible start-screen Settings panel for touch/display controls.
 - OpenTristam brand line on the start header.
+- `touchcancel` cleanup for sticky touch mods and held pan/F-keys.
+- In-game touch gesture tip under Settings / mobile onboarding.
 
 ### Changed
 
@@ -17,6 +19,11 @@ All notable changes to this project will be documented in this file.
 - Decluttered start screen: removed redundant step list, tightened mobile onboarding, improved narrow-viewport layout.
 - Expanded design tokens for inset surfaces, text hierarchy, success accents, and touch targets.
 - MPQ compressor copy no longer relies on spatial “button below” instructions.
+- Touch pipeline skips shell chrome so mid-game banners stay tappable.
+- F5–F8 and two-finger pan now emit matching key-up events.
+- Fullscreen-on-touch is requested once per session and failures are ignored.
+- Belt slot canvases reuse a single child instead of stacking on remount.
+- Touch pad labels use Move / Right-click / Shift / F5–F8 names.
 
 ### Fixed
 

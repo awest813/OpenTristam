@@ -640,6 +640,12 @@ body,
         margin-bottom: 8px;
         color: var(--color-gold-title);
       }
+      .touchSettingsHint {
+        margin: 0 0 10px;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--color-text-soft);
+      }
       .touchSettingsRow {
         display: flex;
         align-items: center;
@@ -800,6 +806,9 @@ body,
       .touchSettingsTitle,
       .displaySettingsTitle {
         color: #fff;
+      }
+      .touchSettingsHint {
+        color: #ddd;
       }
       select {
         background: #000;
@@ -1062,6 +1071,8 @@ body,
     top: 0;
     bottom: 0;
     width: 25vh;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
     .touch-button {
       position: absolute;
       left: 50%;
@@ -1165,8 +1176,9 @@ body,
   .touch-ui.fkeys-left {
     left: 0;
     top: auto;
-    bottom: 0;
+    bottom: max(0px, env(safe-area-inset-bottom));
     height: 35vh;
+    padding-bottom: env(safe-area-inset-bottom);
     .touch-button {
       width: 15vh;
       height: 15vh;
@@ -1201,8 +1213,9 @@ body,
     left: auto;
     top: auto;
     right: 0;
-    bottom: 0;
+    bottom: max(0px, env(safe-area-inset-bottom));
     height: 35vh;
+    padding-bottom: env(safe-area-inset-bottom);
     .touch-button {
       width: 15vh;
       height: 15vh;
