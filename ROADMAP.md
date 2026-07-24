@@ -3,6 +3,7 @@
 This roadmap tracks modernization and reliability work for the browser-based Diablo runtime.
 
 Status legend:
+
 - ✅ Done
 - 🚧 In Progress
 - 🔲 Planned
@@ -23,6 +24,7 @@ Status legend:
 ## Immediate Improvement Roadmap (Post Retail Smoke Test)
 
 Validated on April 18, 2026:
+
 - Retail `DIABDAT.MPQ` import succeeds.
 - The app boots to the Diablo title screen and reaches New Single Player Hero class selection.
 - Unit tests and production builds pass locally.
@@ -30,21 +32,21 @@ Validated on April 18, 2026:
 
 ### Next 30 Days
 
-| Priority | Area | Improvement | Why now | Validation |
-| --- | --- | --- | --- | --- |
-| P0 | E2E coverage | Add an automated browser smoke test for retail MPQ import and menu progression. | Manual validation proved the path works; now it should become repeatable CI/dev coverage. | Scripted run reaches title screen and class select using a test harness or fixture workflow. |
-| P0 | Session UX | Clarify the transient `Connecting...` banner during single-player startup, or suppress it when no real network wait exists. | The retail boot worked, but the status message was confusing during successful startup. | Manual retail boot shows either accurate status text or no misleading banner. |
-| P0 | Tooling parity | Keep dev/build parity explicit in Vite config for CRA-style JSX-in-`.js` sources. | This was the only issue that blocked real smoke testing. | `npm start`, `npm test`, and `npm run build` all pass on a fresh clone. |
-| P1 | Input verification | Add a lightweight menu-input smoke path that confirms keyboard and pointer both advance from the title menu. | We verified click-through manually; it should be guarded against regressions. | Browser smoke test reaches class select via click and via keyboard path. |
-| P1 | Contributor DX | Document a reproducible retail smoke-test workflow using a local user-supplied MPQ. | The project now has a proven manual validation path worth preserving. | `docs/build-guide.md` or a test doc includes step-by-step retail validation guidance. |
+| Priority | Area               | Improvement                                                                                                                 | Why now                                                                                   | Validation                                                                                   |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| P0       | E2E coverage       | Add an automated browser smoke test for retail MPQ import and menu progression.                                             | Manual validation proved the path works; now it should become repeatable CI/dev coverage. | Scripted run reaches title screen and class select using a test harness or fixture workflow. |
+| P0       | Session UX         | Clarify the transient `Connecting...` banner during single-player startup, or suppress it when no real network wait exists. | The retail boot worked, but the status message was confusing during successful startup.   | Manual retail boot shows either accurate status text or no misleading banner.                |
+| P0       | Tooling parity     | Keep dev/build parity explicit in Vite config for CRA-style JSX-in-`.js` sources.                                           | This was the only issue that blocked real smoke testing.                                  | `npm start`, `npm test`, and `npm run build` all pass on a fresh clone.                      |
+| P1       | Input verification | Add a lightweight menu-input smoke path that confirms keyboard and pointer both advance from the title menu.                | We verified click-through manually; it should be guarded against regressions.             | Browser smoke test reaches class select via click and via keyboard path.                     |
+| P1       | Contributor DX     | Document a reproducible retail smoke-test workflow using a local user-supplied MPQ.                                         | The project now has a proven manual validation path worth preserving.                     | `docs/build-guide.md` or a test doc includes step-by-step retail validation guidance.        |
 
 ### Next 60-90 Days
 
-| Priority | Area | Improvement | Why now | Validation |
-| --- | --- | --- | --- | --- |
-| P1 | Regression safety | Add visual regression coverage for start screen, title menu, and class select. | These are stable, high-value checkpoints that caught meaningful state transitions in manual testing. | Snapshot artifacts compare cleanly across CI runs. |
-| P1 | Diagnostics | Surface startup-phase diagnostics in a user-copyable format when worker/session boot stalls. | Useful for the class of issues that look like hangs but are really recoverable startup problems. | Manual failure injection exposes actionable diagnostics and restart affordance. |
-| P2 | Asset workflow | Evaluate a sanctioned local-fixture path for browser E2E runs without checking commercial assets into the repo. | Retail coverage is valuable, but asset handling must stay legally and operationally clean. | Local-only smoke harness works with documented user-provided assets. |
+| Priority | Area              | Improvement                                                                                                     | Why now                                                                                              | Validation                                                                      |
+| -------- | ----------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| P1       | Regression safety | Add visual regression coverage for start screen, title menu, and class select.                                  | These are stable, high-value checkpoints that caught meaningful state transitions in manual testing. | Snapshot artifacts compare cleanly across CI runs.                              |
+| P1       | Diagnostics       | Surface startup-phase diagnostics in a user-copyable format when worker/session boot stalls.                    | Useful for the class of issues that look like hangs but are really recoverable startup problems.     | Manual failure injection exposes actionable diagnostics and restart affordance. |
+| P2       | Asset workflow    | Evaluate a sanctioned local-fixture path for browser E2E runs without checking commercial assets into the repo. | Retail coverage is valuable, but asset handling must stay legally and operationally clean.           | Local-only smoke harness works with documented user-provided assets.            |
 
 ---
 
@@ -63,6 +65,7 @@ Validated on April 18, 2026:
 **Goal:** keep `App.js` focused on composition, routing of intent, and top-level state.
 
 ### Completed
+
 - ✅ Touch control state machine extraction
 - ✅ Keyboard and mouse handler extraction
 - ✅ Session lifecycle extraction into dedicated engine/session module
@@ -132,25 +135,32 @@ Validated on April 18, 2026:
 **Goal:** iterative improvements that preserve gameplay correctness.
 
 ### Mobile & Touch
+
 - ✅ Layout presets for touch controls (`default`, `compact`, `thumb` presets)
 - ✅ Better two-finger pan sensitivity calibration (low/normal/high thresholds)
 - ✅ Gesture conflict handling (tap/pan/long-press)
 - ✅ First-run onboarding for MPQ import on mobile (dismissible and persisted)
 
 ### Accessibility
+
 - ✅ Keyboard-operable overlay controls
 - ✅ Focus trap + return-focus behavior for dialogs
 - ✅ Improved ARIA labeling and semantic landmarks in app chrome
 - ✅ Optional high-contrast UI mode (outside core game rendering)
 
 ### UI Polish
+
 - ✅ Diablo-themed start screen with game title header
 - ✅ Smooth button transitions and hover animations
 - ✅ Improved dialog visual hierarchy and typography
 - ✅ Enhanced loading screen progress indicator styling
 - ✅ Consistent gold/dark color palette across all overlays
+- ✅ Decluttered start screen hierarchy (path cards first, settings collapsed)
+- ✅ Mobile-first start dialog spacing and 44px touch targets
+- ✅ WCAG 1.3.3 copy cleanup in MPQ compressor instructions
 
 ### Performance
+
 - ✅ Reduce startup main-thread blocking
 - 🔲 Profile worker hotspots and optimize render patch pipeline
 - ✅ Lazy-load MPQ compression tooling (loaded only when compressor UI opens)
@@ -160,6 +170,7 @@ Validated on April 18, 2026:
 - ✅ Replace repeated object allocations in high-frequency mouse input handler with pooled struct
 
 ### PWA & Offline
+
 - ✅ Clear service-worker update UX
 - ✅ Reliable offline shareware mode with deterministic precache
 - ✅ Better timing for install prompt surfacing
@@ -170,23 +181,23 @@ The items below are scoped for safe, incremental delivery (small PRs, measurable
 
 #### Performance (safe, high/medium impact)
 
-| Priority | Impact | Item | Why it's safe | Validation |
-| --- | --- | --- | --- | --- |
-| P0 | High | Profile and reduce hot-path message churn between `loader.js` and `game.worker.js` (batch/coalesce non-critical events). | Message schema is already formalized; can preserve protocol compatibility with adapter tests. | Add/extend worker message throughput tests + compare frame-time variance before/after. |
-| ✅ P0 | High | Add viewport-aware render throttling for hidden/inactive tabs and paused overlays. | Browser visibility APIs are additive and do not alter deterministic simulation when active. | Unit tests around visibility transitions + manual idle CPU measurement. |
-| P1 | Medium | Defer non-critical UI overlay work until after session start (diagnostics/history panels). | UI-only scheduling; does not touch game state updates. | Start-time measurements and React profiler capture on cold load. |
-| ✅ P1 | Medium | Expand bundle budget enforcement to include worker chunks and source-map deltas. | CI-only guardrail change; no runtime behavior changes. | `npm run check:bundle-budget` with thresholds documented and tracked in PRs. |
-| ✅ P2 | Medium | Replace repeated object allocations in high-frequency input handlers with pooled/reused structs. | Localized input-path optimization with existing input tests to prevent behavior drift. | Keyboard/mouse/touch unit tests + perf comparison in devtools allocation timeline. |
+| Priority | Impact | Item                                                                                                                     | Why it's safe                                                                                 | Validation                                                                             |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| P0       | High   | Profile and reduce hot-path message churn between `loader.js` and `game.worker.js` (batch/coalesce non-critical events). | Message schema is already formalized; can preserve protocol compatibility with adapter tests. | Add/extend worker message throughput tests + compare frame-time variance before/after. |
+| ✅ P0    | High   | Add viewport-aware render throttling for hidden/inactive tabs and paused overlays.                                       | Browser visibility APIs are additive and do not alter deterministic simulation when active.   | Unit tests around visibility transitions + manual idle CPU measurement.                |
+| P1       | Medium | Defer non-critical UI overlay work until after session start (diagnostics/history panels).                               | UI-only scheduling; does not touch game state updates.                                        | Start-time measurements and React profiler capture on cold load.                       |
+| ✅ P1    | Medium | Expand bundle budget enforcement to include worker chunks and source-map deltas.                                         | CI-only guardrail change; no runtime behavior changes.                                        | `npm run check:bundle-budget` with thresholds documented and tracked in PRs.           |
+| ✅ P2    | Medium | Replace repeated object allocations in high-frequency input handlers with pooled/reused structs.                         | Localized input-path optimization with existing input tests to prevent behavior drift.        | Keyboard/mouse/touch unit tests + perf comparison in devtools allocation timeline.     |
 
 #### Other fixes (safe, high/medium impact)
 
-| Priority | Impact | Item | Why it's safe | Validation |
-| --- | --- | --- | --- | --- |
-| P0 | High | Add explicit stale-session recovery when worker boot fails (single-click restart + diagnostics copy). | Reuses existing diagnostics and session reset paths; no engine logic changes. | Session lifecycle tests + manual failure injection in dev mode. |
-| P0 | High | Improve IndexedDB failure handling with clear "read-only fallback" UX and retry. | Error-path only; keeps current storage contract and avoids silent failures. | `fs` adapter tests for init/read/write failures + UI banner assertions. |
-| P1 | Medium | Harden multiplayer reconnect backoff limits and jitter to reduce synchronized retry storms. | Transport-layer policy update behind existing abstraction. | Transport adapter tests for retry timing + diagnostics assertions. |
-| P1 | Medium | Add deterministic service-worker update prompt flow (`update available` → `reload`) with user control. | UX-only around update lifecycle; avoids implicit auto-reload behavior. | Manual PWA update pass + integration checks for prompt visibility state. |
-| P2 | Medium | Add scoped coverage thresholds for core reliability modules (`engine/session`, `api/transports`, `fs`). | CI policy change with phased thresholds; no runtime risk. | CI passes with threshold report attached to PR. |
+| Priority | Impact | Item                                                                                                    | Why it's safe                                                                 | Validation                                                               |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| P0       | High   | Add explicit stale-session recovery when worker boot fails (single-click restart + diagnostics copy).   | Reuses existing diagnostics and session reset paths; no engine logic changes. | Session lifecycle tests + manual failure injection in dev mode.          |
+| P0       | High   | Improve IndexedDB failure handling with clear "read-only fallback" UX and retry.                        | Error-path only; keeps current storage contract and avoids silent failures.   | `fs` adapter tests for init/read/write failures + UI banner assertions.  |
+| P1       | Medium | Harden multiplayer reconnect backoff limits and jitter to reduce synchronized retry storms.             | Transport-layer policy update behind existing abstraction.                    | Transport adapter tests for retry timing + diagnostics assertions.       |
+| P1       | Medium | Add deterministic service-worker update prompt flow (`update available` → `reload`) with user control.  | UX-only around update lifecycle; avoids implicit auto-reload behavior.        | Manual PWA update pass + integration checks for prompt visibility state. |
+| P2       | Medium | Add scoped coverage thresholds for core reliability modules (`engine/session`, `api/transports`, `fs`). | CI policy change with phased thresholds; no runtime risk.                     | CI passes with threshold report attached to PR.                          |
 
 ---
 
@@ -195,23 +206,27 @@ The items below are scoped for safe, incremental delivery (small PRs, measurable
 **Goal:** lower the barrier to contribution, improve documentation coverage, and build toward a sustainable maintenance model.
 
 ### Documentation
+
 - 🔲 Interactive architecture diagram (Mermaid or equivalent, embedded in docs)
 - 🔲 Troubleshooting FAQ for common MPQ import and browser compatibility issues
 - 🔲 Video walkthrough of contributor setup and first PR workflow
 - 🔲 Changelog generation from conventional commit messages
 
 ### Developer Experience
+
 - 🔲 Devcontainer / Codespaces support for zero-setup contributor onboarding
 - 🔲 Pre-commit hooks for lint and format checks (Husky or equivalent)
 - 🔲 Per-PR bundle size reporting (comment on PR with size diff vs base)
 - 🔲 Automated dependency update PRs (Renovate or Dependabot configuration)
 
 ### Testing & Quality
+
 - 🔲 E2E smoke tests for critical flows (shareware load, save import, MPQ import)
 - 🔲 Visual regression tests for start screen and overlay components
 - 🔲 Code coverage thresholds enforced in CI
 
 ### Feature Expansion
+
 - 🔲 Save file browser with player stats and class icons
 - 🔲 In-app changelog / release notes overlay (shown on version bump)
 - 🔲 Keyboard shortcut reference overlay (accessible from start screen)

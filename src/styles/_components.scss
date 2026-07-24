@@ -154,17 +154,20 @@ body,
     color: var(--color-text-primary);
     font-size: 16px;
     text-align: center;
-    background: linear-gradient(180deg, #0d0a07 0%, #0a0808 100%);
+    background: linear-gradient(180deg, var(--color-bg-panel) 0%, var(--color-bg-panel-alt) 100%);
     box-shadow: var(--shadow-panel);
 
+    .startHeader {
+      margin-bottom: var(--space-lg);
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--color-rule);
+    }
     .startTitle {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 12px;
-      margin-bottom: 16px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid #3a2810;
+      margin-bottom: 4px;
     }
     .startTitleText {
       font-family: var(--font-display);
@@ -180,8 +183,16 @@ body,
     }
     .startTitleDeco {
       font-size: 1.2em;
-      color: #6b4c1e;
+      color: var(--color-gold-border);
       opacity: 0.7;
+    }
+    .startBrand {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 0.95em;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--color-text-faint);
     }
 
     .testerWelcome {
@@ -191,7 +202,7 @@ body,
       background: linear-gradient(180deg, rgba(58, 41, 17, 0.75) 0%, rgba(26, 18, 8, 0.85) 100%);
       text-align: left;
       font-size: 14px;
-      border-radius: 2px;
+      border-radius: var(--radius-sm);
       .testerWelcomeTitle {
         font-size: 17px;
         font-weight: 700;
@@ -217,7 +228,7 @@ body,
     .startMeta {
       margin: 0 0 14px;
       font-size: 13px;
-      color: #8a7a62;
+      color: var(--color-text-faint);
       line-height: 1.45;
     }
 
@@ -226,16 +237,16 @@ body,
       flex-wrap: wrap;
       gap: 12px;
       justify-content: center;
-      margin: 8px 0 18px;
+      margin: 8px 0 14px;
       text-align: left;
     }
     .startPathCard {
       flex: 1 1 240px;
       max-width: 100%;
       padding: 14px 16px;
-      border: 1px solid #3a2810;
+      border: 1px solid var(--color-rule);
       border-radius: var(--radius-md);
-      background: rgba(13, 10, 7, 0.65);
+      background: var(--color-bg-inset-soft);
       transition:
         border-color var(--transition-fast),
         background var(--transition-fast),
@@ -258,41 +269,24 @@ body,
         margin: 0 0 8px;
         font-size: 1.25em;
         font-weight: 700;
-        color: #c8a84a;
+        color: var(--color-gold-title);
       }
       .startPathCardDesc {
         margin: 0 0 12px;
         font-size: 14px;
-        color: #b8a88a;
+        color: var(--color-text-soft);
         line-height: 1.45;
       }
       .startPathCardCta {
         margin-top: 0;
         width: 100%;
         max-width: 14em;
+        min-height: var(--touch-target-min);
       }
     }
     .startPathCard--primary {
-      border-color: #6b4c1e;
+      border-color: var(--color-gold-border);
       background: rgba(42, 28, 10, 0.5);
-    }
-
-    .startStepList {
-      margin: 0 0 16px;
-      padding-left: 22px;
-      text-align: left;
-      color: #b8a88a;
-      font-size: 14px;
-      line-height: 1.45;
-      li {
-        margin-bottom: 10px;
-      }
-      .startStepTitle {
-        display: block;
-        font-weight: 700;
-        color: #d4c4a4;
-        margin-bottom: 2px;
-      }
     }
 
     p {
@@ -313,13 +307,17 @@ body,
       gap: 10px;
       margin-top: 16px;
       padding-top: 14px;
-      border-top: 1px solid #3a2810;
+      border-top: 1px solid var(--color-rule);
       .startButton {
         margin: 0;
         width: auto;
         min-width: 8em;
+        min-height: var(--touch-target-min);
         font-size: 1.2em;
       }
+    }
+    .startFooter {
+      margin-top: 4px;
     }
     .startActions {
       display: flex;
@@ -328,7 +326,7 @@ body,
       gap: 8px;
       margin-top: 10px;
       padding-top: 12px;
-      border-top: 1px solid #3a2810;
+      border-top: 1px solid var(--color-rule);
     }
     .startButton {
       display: block;
@@ -336,12 +334,13 @@ body,
       margin-right: auto;
       border: 1px solid var(--color-gold-border);
       background: linear-gradient(180deg, #1a1108 0%, #0d0a05 100%);
-      color: #c8a84a;
+      color: var(--color-gold-title);
       font-size: 1.7em;
       padding: 6px 18px;
       cursor: pointer;
       margin-top: 6px;
       width: 9em;
+      min-height: var(--touch-target-min);
       text-align: center;
       border-radius: var(--radius-md);
       transition:
@@ -352,7 +351,7 @@ body,
         box-shadow var(--transition-fast);
       &:hover {
         background: linear-gradient(180deg, #2a1c0a 0%, #1a1108 100%);
-        border-color: #a0722a;
+        border-color: var(--color-gold-accent);
         color: var(--color-text-primary);
         box-shadow: 0 0 10px rgba(160, 114, 42, 0.25);
         transform: translateY(-1px);
@@ -363,12 +362,12 @@ body,
         transform: translateY(0);
       }
       &:focus-visible {
-        outline: 2px solid #e8d5a3;
+        outline: 2px solid var(--color-focus-ring);
         outline-offset: 2px;
       }
     }
     .startButton--primary {
-      border-color: #a0722a;
+      border-color: var(--color-gold-accent);
       color: var(--color-text-primary);
       background: linear-gradient(180deg, #2a1c0a 0%, #1a1108 100%);
       &:hover {
@@ -390,10 +389,10 @@ body,
     .startButton--install {
       font-size: 1.2em;
       border-color: #2e6b2e;
-      color: #8dcf8d;
+      color: var(--color-success-text);
       background: linear-gradient(180deg, #0a1a0a 0%, #060e06 100%);
       &:hover {
-        border-color: #4a8c4a;
+        border-color: var(--color-success-border);
         color: #b8e8b8;
         box-shadow: 0 0 10px rgba(74, 140, 74, 0.25);
       }
@@ -413,12 +412,13 @@ body,
       color: #666;
       font-size: 0.85em;
       cursor: pointer;
-      padding: 2px 6px;
+      min-height: 32px;
+      padding: 4px 8px;
       &:hover {
         color: #999;
       }
       &:focus-visible {
-        outline: 2px solid #e8d5a3;
+        outline: 2px solid var(--color-focus-ring);
         outline-offset: 2px;
       }
     }
@@ -550,37 +550,95 @@ body,
       }
     }
     .mobileOnboarding {
-      margin: 14px 0;
+      margin: 8px 0 14px;
       padding: 10px 12px;
       border: 1px solid var(--color-gold-border);
-      background: rgba(58, 41, 17, 0.55);
+      background: var(--color-bg-callout);
       text-align: left;
       font-size: 14px;
+      border-radius: var(--radius-sm);
       .mobileOnboardingTitle {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 700;
         margin-bottom: 6px;
         color: var(--color-text-primary);
       }
-      ul {
-        margin: 0 0 8px 18px;
-        padding: 0;
-      }
-      li {
-        margin-bottom: 4px;
+      .mobileOnboardingLead {
+        margin: 0 0 8px;
+        color: var(--color-text-soft);
+        line-height: 1.45;
       }
     }
-    .touchSettings {
-      margin: 14px 0 4px;
-      padding: 10px 12px;
-      border: 1px solid #3a2810;
-      background: rgba(13, 10, 7, 0.8);
+    .startSettings {
+      margin: 4px 0 8px;
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-md);
+      background: var(--color-bg-inset);
       text-align: left;
+      overflow: hidden;
+    }
+    .startSettingsSummary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      padding: 12px 14px;
+      min-height: var(--touch-target-min);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-gold-title);
+      transition:
+        background var(--transition-fast),
+        color var(--transition-fast);
+      &::-webkit-details-marker {
+        display: none;
+      }
+      &::after {
+        content: '+';
+        font-weight: 400;
+        color: var(--color-text-faint);
+        font-size: 1.1em;
+        line-height: 1;
+      }
+      &:hover {
+        background: rgba(58, 40, 16, 0.35);
+        color: var(--color-text-primary);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--color-focus-ring);
+        outline-offset: -2px;
+      }
+    }
+    .startSettings[open] .startSettingsSummary {
+      border-bottom: 1px solid var(--color-rule);
+      &::after {
+        content: '−';
+      }
+    }
+    .startSettingsBody {
+      padding: 10px 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .touchSettings,
+    .displaySettings {
+      margin: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--color-rule);
+      background: rgba(0, 0, 0, 0.25);
+      text-align: left;
+      border-radius: var(--radius-sm);
+    }
+    .touchSettings {
       .touchSettingsTitle {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 700;
         margin-bottom: 8px;
-        color: #c8a84a;
+        color: var(--color-gold-title);
       }
       .touchSettingsRow {
         display: flex;
@@ -588,44 +646,43 @@ body,
         justify-content: space-between;
         gap: 12px;
         margin-bottom: 8px;
+        min-height: 36px;
       }
       .touchSettingsRow:last-child {
         margin-bottom: 0;
       }
       select {
         background: #0d0a05;
-        color: #c8a84a;
+        color: var(--color-gold-title);
         border: 1px solid var(--color-gold-border);
-        padding: 4px 6px;
-        transition: border-color 0.15s ease;
+        border-radius: var(--radius-sm);
+        min-height: 36px;
+        padding: 4px 8px;
+        transition: border-color var(--transition-fast);
         &:focus {
-          border-color: #a0722a;
+          border-color: var(--color-gold-accent);
           outline: none;
         }
       }
     }
     .displaySettings {
-      margin: 14px 0 4px;
-      padding: 10px 12px;
-      border: 1px solid #3a2810;
-      background: rgba(13, 10, 7, 0.8);
-      text-align: left;
       .displaySettingsTitle {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 700;
         margin-bottom: 8px;
-        color: #c8a84a;
+        color: var(--color-gold-title);
       }
       .displaySettingsRow {
         display: flex;
         align-items: center;
         gap: 8px;
         margin-bottom: 0;
+        min-height: 36px;
         cursor: pointer;
         input[type='checkbox'] {
-          accent-color: #c8a84a;
-          width: 16px;
-          height: 16px;
+          accent-color: var(--color-gold-title);
+          width: 18px;
+          height: 18px;
           cursor: pointer;
         }
       }
@@ -685,7 +742,8 @@ body,
       background: #111;
       border-color: #fff;
       color: #fff;
-      .mobileOnboardingTitle {
+      .mobileOnboardingTitle,
+      .mobileOnboardingLead {
         color: #fff;
       }
     }
@@ -701,6 +759,7 @@ body,
         color: #fff;
       }
     }
+    .startBrand,
     .startMeta {
       color: #ccc;
     }
@@ -717,15 +776,26 @@ body,
         color: #ddd;
       }
     }
-    .startStepList {
-      color: #ddd;
-      .startStepTitle {
+    .startSettings {
+      background: #111;
+      border-color: #fff;
+    }
+    .startSettingsSummary {
+      color: #fff;
+      &::after {
+        color: #fff;
+      }
+      &:hover {
+        background: #222;
         color: #fff;
       }
     }
+    .startSettings[open] .startSettingsSummary {
+      border-bottom-color: #fff;
+    }
     .touchSettings,
     .displaySettings {
-      background: #111;
+      background: #000;
       border-color: #fff;
       .touchSettingsTitle,
       .displaySettingsTitle {
@@ -735,6 +805,22 @@ body,
         background: #000;
         color: #fff;
         border-color: #fff;
+      }
+    }
+    .startButton--install {
+      border-color: #fff;
+      color: #fff;
+      background: #000;
+      &:hover {
+        background: #222;
+        color: #fff;
+        box-shadow: none;
+      }
+    }
+    .installPromptDismiss {
+      color: #fff;
+      &:hover {
+        color: #fff;
       }
     }
   }

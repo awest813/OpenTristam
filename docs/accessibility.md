@@ -11,7 +11,9 @@ OpenTristam includes an accessibility-first UI layer around the game canvas.
   - ARIA roles/labels
 - Loading states include `role="status"` and live-region announcements.
 - Error surfaces use `role="alertdialog"` with clear recovery actions.
-- High-contrast mode is available from the start screen display settings.
+- High-contrast mode is available from the start screen settings panel.
+- Start-screen instructions avoid sensory/spatial phrasing (WCAG 1.3.3).
+- Primary actions target at least 44px touch height on narrow viewports.
 - Visible `:focus-visible` outlines are standardized across interactive controls.
 
 ## ARIA patterns in use

@@ -31,6 +31,8 @@ describe('CompressMpq', () => {
     await render();
 
     expect(container.querySelector('.startTitleText').textContent).toBe('COMPRESS');
+    expect(container.textContent).toMatch(/Select an MPQ file or drop it onto the page/i);
+    expect(container.textContent).not.toMatch(/click the button below/i);
 
     const actions = container.querySelector('.dialogActions');
     expect(actions).toBeTruthy();
