@@ -9,9 +9,10 @@ export default class CompressMpq extends React.Component {
 
   parseFile = (e) => {
     const files = e.target.files;
-    if (files.length > 0) {
+    if (files && files.length > 0) {
       this.start(files[0]);
     }
+    e.target.value = '';
   };
 
   openFilePicker = () => {
@@ -24,9 +25,8 @@ export default class CompressMpq extends React.Component {
     this.setState({ progress });
   }
   onDone = (blob) => {
-    //const blob = new Blob([result], {type: 'binary/octet-stream'});
     const url = URL.createObjectURL(blob);
-    this.setState({ url });
+    this.setState({ url, started: false, error: null });
 
     const lnk = document.createElement('a');
     lnk.setAttribute('href', url);
@@ -35,9 +35,14 @@ export default class CompressMpq extends React.Component {
     lnk.click();
     document.body.removeChild(lnk);
   };
-  onError(message, stack) {
-    this.props.onClose();
-    this.props.onError(message, stack);
+  onError(message) {
+    // Keep compression failures inside this dialog — escalating to the game
+    // error overlay framed them as "Restart game", which is the wrong recovery.
+    this.setState({
+      started: false,
+      progress: null,
+      error: message || 'Compression failed.',
+    });
   }
 
   onClose = () => {
@@ -47,11 +52,15 @@ export default class CompressMpq extends React.Component {
     this.props.onClose();
   };
 
+  clearError = () => {
+    this.setState({ error: null });
+  };
+
   start(file) {
-    this.setState({ started: true });
+    this.setState({ started: true, error: null, url: null });
     compress(file, (text, loaded, total) => this.onProgress({ text, loaded, total })).then(
       this.onDone,
-      (e) => this.onError(e.message, e.stack)
+      (e) => this.onError(e.message)
     );
   }
 
@@ -65,11 +74,59 @@ export default class CompressMpq extends React.Component {
     );
   }
 
+  renderFileInput() {
+    return (
+      <input
+        accept=".mpq"
+        type="file"
+        ref={this.fileInputRef}
+        style={{ display: 'none' }}
+        aria-label="Select MPQ file to compress"
+        onChange={this.parseFile}
+      />
+    );
+  }
+
   render() {
-    const { url, started, progress } = this.state;
+    const { url, started, progress, error } = this.state;
+    if (error) {
+      return (
+        <DialogFrame
+          className="start"
+          ariaLabel="MPQ compression failed"
+          onEscape={this.onClose}
+          initialFocusSelector=".startButton--primary"
+        >
+          {this.renderTitle()}
+          <p className="compressErrorLead">Compression failed.</p>
+          <p>{error}</p>
+          <div className="dialogActions">
+            <button
+              type="button"
+              className="startButton startButton--secondary"
+              onClick={this.onClose}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              className="startButton startButton--primary"
+              onClick={this.clearError}
+            >
+              Try again
+            </button>
+          </div>
+        </DialogFrame>
+      );
+    }
     if (url) {
       return (
-        <DialogFrame className="start" ariaLabel="MPQ compression complete">
+        <DialogFrame
+          className="start"
+          ariaLabel="MPQ compression complete"
+          onEscape={this.onClose}
+          initialFocusSelector=".startButton--primary"
+        >
           {this.renderTitle()}
           <p>
             Compression complete.{' '}
@@ -79,7 +136,11 @@ export default class CompressMpq extends React.Component {
             if it doesn&apos;t start automatically.
           </p>
           <div className="dialogActions">
-            <button type="button" className="startButton" onClick={this.onClose}>
+            <button
+              type="button"
+              className="startButton startButton--primary"
+              onClick={this.onClose}
+            >
               Back
             </button>
           </div>
@@ -97,7 +158,12 @@ export default class CompressMpq extends React.Component {
       return <LoadingScreen progress={loadingProgress} />;
     }
     return (
-      <DialogFrame className="start" ariaLabel="Compress MPQ">
+      <DialogFrame
+        className="start"
+        ariaLabel="Compress MPQ"
+        onEscape={this.onClose}
+        initialFocusSelector=".startButton--primary"
+      >
         {this.renderTitle()}
         <p>
           Reduce the original MPQ to about half its size by encoding sounds as MP3 and applying
@@ -111,18 +177,15 @@ export default class CompressMpq extends React.Component {
           >
             Back
           </button>
-          <button type="button" className="startButton" onClick={this.openFilePicker}>
+          <button
+            type="button"
+            className="startButton startButton--primary"
+            onClick={this.openFilePicker}
+          >
             Select MPQ
           </button>
         </div>
-        <input
-          accept=".mpq"
-          type="file"
-          ref={this.fileInputRef}
-          style={{ display: 'none' }}
-          aria-label="Select MPQ file to compress"
-          onChange={this.parseFile}
-        />
+        {this.renderFileInput()}
       </DialogFrame>
     );
   }

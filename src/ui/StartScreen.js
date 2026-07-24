@@ -52,7 +52,11 @@ export default function StartScreen(props) {
   };
 
   return (
-    <DialogFrame className="start" ariaLabel="Start Diablo">
+    <DialogFrame
+      className="start"
+      ariaLabel="OpenTristam — start game"
+      initialFocusSelector=".startButton--primary"
+    >
       <header className="startHeader">
         <div className="startTitle" aria-hidden="true">
           <span className="startTitleDeco">⚔</span>
@@ -108,6 +112,7 @@ export default function StartScreen(props) {
           <button
             type="button"
             className="startButton startButton--primary startPathCardCta"
+            data-initial-focus
             onClick={() => onStart(null)}
           >
             Play Shareware
@@ -137,6 +142,7 @@ export default function StartScreen(props) {
         onChange={(e) => {
           const { files } = e.target;
           if (files && files.length > 0) onStart(files[0]);
+          e.target.value = '';
         }}
       />
 
@@ -145,7 +151,8 @@ export default function StartScreen(props) {
           <div className="mobileOnboardingTitle">Mobile tip</div>
           <p className="mobileOnboardingLead">
             Use <strong>Play Shareware</strong> for an immediate try, or <strong>Select MPQ</strong>{' '}
-            to import retail data from device storage. Touch controls appear once the game starts.
+            to import retail data from device storage. Open <strong>Settings</strong> below to tune
+            touch layout before you start.
           </p>
           <button type="button" className="linkButton" onClick={onDismissMobileOnboarding}>
             Got it

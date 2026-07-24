@@ -18,7 +18,7 @@ function makeMockStore(initialData = {}) {
     set: jest.fn(() => Promise.resolve()),
     remove: jest.fn(() => Promise.resolve()),
     clear: jest.fn(() => Promise.resolve()),
-    get: jest.fn(key => Promise.resolve(initialData[key] ?? null)),
+    get: jest.fn((key) => Promise.resolve(initialData[key] ?? null)),
   };
 }
 
@@ -129,19 +129,24 @@ describe('create_fs — IndexedDB init failure', () => {
     expect(fs.list()).toEqual([]);
   });
 
-  it('update() is a no-op and returns a resolved promise on failure', async () => {
+  it('update() rejects on failure so callers can surface read-only storage', async () => {
     const fs = await create_fs();
-    await expect(fs.update('x.sv', new Uint8Array())).resolves.toBeUndefined();
+    await expect(fs.update('x.sv', new Uint8Array())).rejects.toThrow(/read-only fallback/i);
   });
 
-  it('delete() is a no-op and returns a resolved promise on failure', async () => {
+  it('delete() rejects on failure so callers can surface read-only storage', async () => {
     const fs = await create_fs();
-    await expect(fs.delete('x.sv')).resolves.toBeUndefined();
+    await expect(fs.delete('x.sv')).rejects.toThrow(/read-only fallback/i);
   });
 
-  it('clear() is a no-op and returns a resolved promise on failure', async () => {
+  it('clear() rejects on failure so callers can surface read-only storage', async () => {
     const fs = await create_fs();
-    await expect(fs.clear()).resolves.toBeUndefined();
+    await expect(fs.clear()).rejects.toThrow(/read-only fallback/i);
+  });
+
+  it('upload() rejects on failure so callers do not show false success', async () => {
+    const fs = await create_fs();
+    await expect(fs.upload({ name: 'hero.sv' })).rejects.toThrow(/read-only fallback/i);
   });
 
   it('fileUrl() returns a resolved promise with undefined on failure', async () => {

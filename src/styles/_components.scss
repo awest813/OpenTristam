@@ -943,6 +943,20 @@ body,
       flex-wrap: wrap;
       gap: 10px;
     }
+    .errorPrimaryActions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      .startButton {
+        margin-top: 0;
+        width: auto;
+        min-width: 8em;
+        font-size: 1.2em;
+      }
+    }
+    .errorCopyLink,
     .errorIssueLink,
     .errorSaveLink {
       display: inline-flex;
@@ -955,14 +969,23 @@ body,
       background: rgba(122, 32, 32, 0.18);
       font-size: 0.85em;
       color: #f99;
+      cursor: pointer;
       &:hover {
         color: #fff;
         background: rgba(122, 32, 32, 0.35);
       }
     }
+    .errorCopyLink {
+      font: inherit;
+    }
     .startButton {
       margin-top: 14px;
     }
+  }
+
+  .compressErrorLead {
+    font-weight: 700;
+    color: var(--color-text-strong);
   }
 
   .loading {
@@ -1409,6 +1432,16 @@ body,
       outline-offset: 2px;
     }
   }
+  .updateBanner-dismiss {
+    background: transparent;
+    border-color: transparent;
+    color: var(--color-text-muted);
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+      color: var(--color-text-primary);
+    }
+  }
 }
 
 .storageBanner {
@@ -1427,6 +1460,32 @@ body,
   box-shadow: var(--shadow-panel);
   backdrop-filter: blur(8px);
   animation: toastInTop var(--transition-slow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  .storageBanner-retry {
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.35);
+    color: #f2d7d7;
+    border: 1px solid #d36d6d;
+    border-radius: var(--radius-sm);
+    min-height: 32px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    &:hover:not(:disabled) {
+      background: rgba(140, 44, 44, 0.55);
+    }
+    &:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+    &:focus-visible {
+      outline: 2px solid #f2d7d7;
+      outline-offset: 2px;
+    }
+  }
 }
 
 .offlineReadyToast {
@@ -1629,6 +1688,11 @@ body,
   .multiplayerBanner-message {
     font-size: 13px;
     color: #f0e0b8;
+  }
+
+  .multiplayerBanner-copy-feedback {
+    font-size: 12px;
+    color: #8dcf8d;
   }
 
   .multiplayerBanner-session-id {

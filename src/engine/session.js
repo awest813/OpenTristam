@@ -14,10 +14,47 @@ function notify(app, notice) {
   }
 }
 
+/**
+ * Soft-reset the shell back to the start screen without a full page reload.
+ * Used after recoverable boot/runtime failures so players can try again.
+ *
+ * @param {object} app App instance.
+ */
+export function resetToStart(app) {
+  if (app.runtimeListeners && typeof app.runtimeListeners.detach === 'function') {
+    app.runtimeListeners.detach();
+  }
+  if (app.game && typeof app.game === 'object' && typeof app.game.dispose === 'function') {
+    try {
+      app.game.dispose();
+    } catch (e) {
+      // Best-effort cleanup; ignore dispose failures during recovery.
+    }
+  }
+  app.game = null;
+  if (app.fileDropTarget && typeof app.fileDropTarget.attach === 'function') {
+    app.fileDropTarget.attach();
+  }
+  app.setState({
+    loading: false,
+    started: false,
+    error: null,
+    progress: null,
+    compress: false,
+    show_saves: false,
+    dropping: 0,
+  });
+}
+
 export function startGame(app, file) {
   if (file && /\.sv$/i.test(file.name)) {
     app.fs
-      .then((fs) => fs.upload(file))
+      .then((fs) => {
+        if (fs.initError) {
+          throw fs.initError;
+        }
+        return fs.upload(file);
+      })
       .then(() => {
         app.onSaveUploaded();
         notify(app, {
@@ -28,12 +65,18 @@ export function startGame(app, file) {
       .catch(() => {
         notify(app, {
           tone: 'error',
-          message: `Could not import “${file.name}”. Make sure it is a valid .sv save file.`,
+          message: `Could not import “${file.name}”. Make sure it is a valid .sv save file and that browser storage is available.`,
         });
       });
     return;
   }
   if (app.state.show_saves) {
+    if (file) {
+      notify(app, {
+        tone: 'info',
+        message: 'Close Manage Saves first, then drop an MPQ to start the game.',
+      });
+    }
     return;
   }
   if (file && !/\.mpq$/i.test(file.name)) {
@@ -49,6 +92,10 @@ export function startGame(app, file) {
   // mid-load) that would otherwise spawn a second worker and a duplicate
   // multi-megabyte asset download.
   if (app.state.loading || app.state.started) {
+    notify(app, {
+      tone: 'info',
+      message: app.state.loading ? 'Already loading — hang tight.' : 'The game is already running.',
+    });
     return;
   }
 
@@ -63,13 +110,13 @@ export function startGame(app, file) {
     });
   }
 
-  app.setState({ loading: true, retail });
+  app.setState({ loading: true, retail, error: null });
 
   load_game(app, file, !retail).then(
     (game) => {
       app.game = game;
       app.runtimeListeners.attach();
-      app.setState({ started: true });
+      app.setState({ started: true, loading: false });
     },
     (e) => handleGameError(app, e.message, e.stack)
   );
@@ -88,17 +135,30 @@ export function handleGameError(app, message, stack) {
     if (app.saveName) {
       errorObject.save = await (await app.fs).fileUrl(app.saveName);
     }
+    const applyError = (error) => {
+      app.setState(({ error: existing }) =>
+        !existing
+          ? {
+              error,
+              loading: false,
+              // Keep `started` as-is for in-game crashes so canvas state is clear,
+              // but ensure boot failures leave the shell on the error overlay.
+              started: false,
+            }
+          : null
+      );
+    };
     if (stack) {
       mapStackTrace(stack, (resolvedStack) => {
-        app.setState(
-          ({ error }) => !error && { error: { ...errorObject, stack: resolvedStack.join('\n') } }
-        );
+        applyError({ ...errorObject, stack: resolvedStack.join('\n') });
       });
     } else {
-      app.setState(({ error }) => !error && { error: errorObject });
+      applyError(errorObject);
     }
   })().catch(() => {
-    app.setState(({ error }) => !error && { error: { message } });
+    app.setState(({ error }) =>
+      !error ? { error: { message }, loading: false, started: false } : null
+    );
   });
 }
 

@@ -22,6 +22,7 @@ export default class SaveManager extends React.Component {
         this.props.savesVersion != null ? this.props.savesVersion : this.context.savesVersion,
       onClose: this.props.onClose || this.context.closeSaveManager,
       showNotice: this.props.showNotice || this.context.showNotice,
+      refreshSaves: this.props.refreshSaves || this.context.refreshSaves,
     };
   }
 
@@ -29,6 +30,13 @@ export default class SaveManager extends React.Component {
     const { showNotice } = this.getSessionValues();
     if (typeof showNotice === 'function') {
       showNotice(notice);
+    }
+  }
+
+  syncSavesPresence() {
+    const { refreshSaves } = this.getSessionValues();
+    if (typeof refreshSaves === 'function') {
+      refreshSaves();
     }
   }
 
@@ -83,11 +91,19 @@ export default class SaveManager extends React.Component {
     this.setState({ pendingDelete: null });
     const { fs } = this.getSessionValues();
     if (!fs) return;
-    const fsApi = await fs;
-    await fsApi.delete(name.toLowerCase());
-    fsApi.files.delete(name.toLowerCase());
-    this.loadSaves();
-    this.notify({ tone: 'success', message: `Deleted “${name}”.` });
+    try {
+      const fsApi = await fs;
+      await fsApi.delete(name.toLowerCase());
+      fsApi.files.delete(name.toLowerCase());
+      await this.loadSaves();
+      this.syncSavesPresence();
+      this.notify({ tone: 'success', message: `Deleted “${name}”.` });
+    } catch (e) {
+      this.notify({
+        tone: 'error',
+        message: `Could not delete “${name}”. Browser storage may be unavailable.`,
+      });
+    }
   };
 
   onConfirmKeyDown = (event) => {
@@ -103,26 +119,34 @@ export default class SaveManager extends React.Component {
   downloadSave = (name) => {
     const { fs } = this.getSessionValues();
     if (!fs) return;
-    fs.then((fsApi) => fsApi.download(name));
+    fs.then((fsApi) => fsApi.download(name)).catch(() => {
+      this.notify({
+        tone: 'error',
+        message: `Could not download “${name}”. Browser storage may be unavailable.`,
+      });
+    });
   };
 
   uploadSave = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const { fs } = this.getSessionValues();
-      if (!fs) return;
-      fs.then((fsApi) => fsApi.upload(file))
-        .then(() => {
-          this.loadSaves();
-          this.notify({ tone: 'success', message: `Imported “${file.name}”.` });
-        })
-        .catch(() =>
-          this.notify({
-            tone: 'error',
-            message: `Could not import “${file.name}”. Make sure it is a valid .sv save file.`,
-          })
-        );
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) {
+      return;
     }
+    const { fs } = this.getSessionValues();
+    if (!fs) return;
+    fs.then((fsApi) => fsApi.upload(file))
+      .then(async () => {
+        await this.loadSaves();
+        this.syncSavesPresence();
+        this.notify({ tone: 'success', message: `Imported “${file.name}”.` });
+      })
+      .catch(() =>
+        this.notify({
+          tone: 'error',
+          message: `Could not import “${file.name}”. Make sure it is a valid .sv save file and that browser storage is available.`,
+        })
+      );
   };
 
   openUploadPicker = () => {
@@ -140,6 +164,7 @@ export default class SaveManager extends React.Component {
         className="start saveManager"
         ariaLabel="Manage saves"
         onEscape={onClose || (() => {})}
+        initialFocusSelector=".saveManagerActions .startButton--secondary, .savesEmptyCta"
       >
         <div className="startTitle" aria-hidden="true">
           <span className="startTitleDeco">⚔</span>

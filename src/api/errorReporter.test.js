@@ -1,4 +1,4 @@
-import { buildIssueUrl, describeStartupError } from './errorReporter';
+import { buildDiagnosticsText, buildIssueUrl, describeStartupError } from './errorReporter';
 
 const ORIGINAL_NAV_USER_AGENT = navigator.userAgent;
 
@@ -49,6 +49,16 @@ describe('buildIssueUrl', () => {
     const url = buildIssueUrl({ message: 'err' }, retail);
     const body = new URL(url).searchParams.get('body');
     expect(body).toContain(ORIGINAL_NAV_USER_AGENT);
+  });
+});
+
+describe('buildDiagnosticsText', () => {
+  it('includes version, mode, message, and stack', () => {
+    const text = buildDiagnosticsText({ message: 'boom', stack: 'at foo.js:1' }, true);
+    expect(text).toContain('Retail');
+    expect(text).toContain('boom');
+    expect(text).toContain('at foo.js:1');
+    expect(text).toContain(ORIGINAL_NAV_USER_AGENT);
   });
 });
 

@@ -51,6 +51,25 @@ export function describeStartupError(rawMessage) {
   };
 }
 
+/**
+ * Build a plain-text diagnostics blob players can copy when reporting issues.
+ *
+ * @param {{message?: string, stack?: string}} error
+ * @param {boolean} retail
+ * @returns {string}
+ */
+export function buildDiagnosticsText(error, retail) {
+  const message = (error && error.message) || 'Unknown error';
+  const stack = error && error.stack ? `\n${error.stack}` : '';
+  const agent = typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown';
+  return [
+    `OpenTristam ${process.env.VERSION || 'unknown'} (${retail ? 'Retail' : 'Shareware'})`,
+    `User agent: ${agent}`,
+    '',
+    message + stack,
+  ].join('\n');
+}
+
 export function buildIssueUrl(error, retail) {
   const message = (error.message || 'Unknown error') + (error.stack ? '\n' + error.stack : '');
   const url = new URL('https://github.com/awest813/OpenTristam/issues/new');

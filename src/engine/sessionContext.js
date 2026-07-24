@@ -17,6 +17,8 @@ export const defaultSessionValue = {
   fs: null,
   saveName: null,
   startGame: noop,
+  returnToStart: noop,
+  refreshSaves: noop,
   openSaveManager: noop,
   closeSaveManager: noop,
   openCompressor: noop,

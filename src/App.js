@@ -37,6 +37,7 @@ import {
   handleGameError,
   handleGameExit,
   handleProgress,
+  resetToStart,
   setCurrentSave,
   setCursorPos,
 } from './engine/session';
@@ -98,8 +99,10 @@ class App extends React.Component {
     has_saves: false,
     savesVersion: 0,
     updateAvailable: false,
+    updateDismissed: false,
     updateRegistration: null,
     storageError: null,
+    storageRetrying: false,
     // Game session state (set by engine/session helpers)
     progress: null,
     error: null,
@@ -222,7 +225,11 @@ class App extends React.Component {
 
   onSwUpdate = (e) => {
     const registration = e?.detail ?? window.__swRegistration ?? null;
-    this.setState({ updateAvailable: true, updateRegistration: registration });
+    this.setState({
+      updateAvailable: true,
+      updateDismissed: false,
+      updateRegistration: registration,
+    });
   };
 
   onSwOfflineReady = () => this.setState({ offlineReady: true });
@@ -338,6 +345,9 @@ class App extends React.Component {
     });
     startGame(this, file);
   };
+  returnToStart = () => {
+    resetToStart(this);
+  };
   onError = (message, stack) => handleGameError(this, message, stack);
   onExit() {
     handleGameExit(this);
@@ -408,18 +418,12 @@ class App extends React.Component {
 
   copySessionId = async () => {
     const { multiplayerSessionId } = this.state;
-    const copied = await this.copyText(multiplayerSessionId);
-    if (copied) {
-      this.setState({ multiplayerMessage: 'Session ID copied to clipboard.' });
-    }
+    return this.copyText(multiplayerSessionId);
   };
 
   copyShareLink = async () => {
     const { multiplayerShareUrl } = this.state;
-    const copied = await this.copyText(multiplayerShareUrl);
-    if (copied) {
-      this.setState({ multiplayerMessage: 'Share link copied to clipboard.' });
-    }
+    return this.copyText(multiplayerShareUrl);
   };
 
   dismissMultiplayerNotice = () => {
@@ -495,6 +499,67 @@ class App extends React.Component {
   };
 
   dismissOfflineReady = () => this.setState({ offlineReady: false });
+  dismissUpdateBanner = () => this.setState({ updateDismissed: true });
+
+  retryStorage = async () => {
+    if (this.state.storageRetrying) {
+      return;
+    }
+    this.setState({ storageRetrying: true });
+    try {
+      const fs = await create_fs();
+      this.fs = Promise.resolve(fs);
+      let hasSaves = false;
+      let hasSpawn = false;
+      for (const name of fs.files.keys()) {
+        if (/\.sv$/i.test(name)) {
+          hasSaves = true;
+        }
+        if (name === 'spawn.mpq' && SpawnSizes.includes(fs.files.get(name).byteLength)) {
+          hasSpawn = true;
+        }
+      }
+      this.setState({
+        storageError: fs.initError ? fs.initError.message || String(fs.initError) : null,
+        storageRetrying: false,
+        has_saves: hasSaves,
+        has_spawn: hasSpawn || this.state.has_spawn,
+        savesVersion: this.state.savesVersion + 1,
+      });
+      if (!fs.initError) {
+        this.showStartupNotice({
+          tone: 'success',
+          message: 'Browser storage is available again. Saves will persist.',
+        });
+      } else {
+        this.showStartupNotice({
+          tone: 'error',
+          message: 'Storage is still unavailable. Progress will remain read-only.',
+        });
+      }
+    } catch (e) {
+      this.setState({
+        storageRetrying: false,
+        storageError: e.message || String(e),
+      });
+    }
+  };
+
+  refreshSaves = async () => {
+    try {
+      const fsApi = await this.fs;
+      let hasSaves = false;
+      for (const name of fsApi.files.keys()) {
+        if (/\.sv$/i.test(name)) {
+          hasSaves = true;
+          break;
+        }
+      }
+      this.setState((s) => ({ savesVersion: s.savesVersion + 1, has_saves: hasSaves }));
+    } catch (e) {
+      this.setState((s) => ({ savesVersion: s.savesVersion + 1, has_saves: false }));
+    }
+  };
 
   // ─── Startup notices ────────────────────────────────────────────────────────
   // A single transient channel for pre-game feedback (e.g. "that's not an MPQ",
@@ -544,7 +609,7 @@ class App extends React.Component {
   };
 
   onSaveUploaded() {
-    this.setState((s) => ({ savesVersion: s.savesVersion + 1, has_saves: true }));
+    this.refreshSaves();
   }
 
   openSaveManager = () => this.setState({ show_saves: true });
@@ -598,6 +663,8 @@ class App extends React.Component {
       fs: this.fs,
       saveName: this.saveName,
       startGame: this.start,
+      returnToStart: this.returnToStart,
+      refreshSaves: this.refreshSaves,
       openSaveManager: this.openSaveManager,
       closeSaveManager: this.closeSaveManager,
       openCompressor: this.openCompressor,
@@ -893,16 +960,22 @@ class App extends React.Component {
       error,
       dropping,
       updateAvailable,
+      updateDismissed,
       touchLayoutPreset,
       highContrastMode,
       compress,
+      show_saves,
       offlineReady,
+      storageRetrying,
     } = this.state;
     const sessionContextValue = this.getSessionContextValue();
     const touchPresetClass = `touch-preset-${touchLayoutPreset || DEFAULT_TOUCH_LAYOUT_PRESET}`;
-    const dropHint = compress
-      ? 'Drop an MPQ file here to compress it.'
-      : 'Drop DIABDAT.MPQ or a .sv save file here.';
+    let dropHint = 'Drop DIABDAT.MPQ or a .sv save file here.';
+    if (compress) {
+      dropHint = 'Drop an MPQ file here to compress it.';
+    } else if (show_saves) {
+      dropHint = 'Drop a .sv save file here to import it.';
+    }
     return (
       <SessionContext.Provider value={sessionContextValue}>
         <div
@@ -915,15 +988,22 @@ class App extends React.Component {
           })}
           ref={this.setElement}
         >
-          {updateAvailable && !started && (
+          {updateAvailable && !updateDismissed && !started && (
             <div className="updateBanner" role="status" aria-live="polite" aria-atomic="true">
               A new version is available.{' '}
               <button type="button" onClick={this.applySwUpdate}>
                 Reload
               </button>
+              <button
+                type="button"
+                className="updateBanner-dismiss"
+                onClick={this.dismissUpdateBanner}
+              >
+                Not now
+              </button>
             </div>
           )}
-          {offlineReady && (
+          {offlineReady && !started && (
             <div className="offlineReadyToast" role="status" aria-live="polite" aria-atomic="true">
               App is ready to work offline.{' '}
               <button
@@ -937,8 +1017,18 @@ class App extends React.Component {
           )}
           {this.state.storageError && (
             <div className="storageBanner" role="alert" aria-live="assertive" aria-atomic="true">
-              Save storage unavailable — game progress will not be saved.{' '}
-              <small>({this.state.storageError})</small>
+              <span>
+                Storage is read-only — saves will not persist.{' '}
+                <small>({this.state.storageError})</small>
+              </span>
+              <button
+                type="button"
+                className="storageBanner-retry"
+                onClick={this.retryStorage}
+                disabled={storageRetrying}
+              >
+                {storageRetrying ? 'Retrying…' : 'Retry storage'}
+              </button>
             </div>
           )}
           <MultiplayerStatusBanner />

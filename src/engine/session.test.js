@@ -3,6 +3,7 @@ import {
   handleGameError,
   handleGameExit,
   handleProgress,
+  resetToStart,
   setCurrentSave,
   setCursorPos,
 } from './session';
@@ -39,14 +40,27 @@ describe('startGame', () => {
     const app = makeApp({ state: { show_saves: false, loading: true, started: false } });
     startGame(app, null);
     expect(app.fileDropTarget.detach).not.toHaveBeenCalled();
-    expect(app.setState).not.toHaveBeenCalled();
+    expect(app.showStartupNotice).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: 'info', message: expect.stringMatching(/Already loading/i) })
+    );
   });
 
   it('does not launch again once a game has started', () => {
     const app = makeApp({ state: { show_saves: false, loading: false, started: true } });
     startGame(app, null);
     expect(app.fileDropTarget.detach).not.toHaveBeenCalled();
-    expect(app.setState).not.toHaveBeenCalled();
+    expect(app.showStartupNotice).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringMatching(/already running/i) })
+    );
+  });
+
+  it('explains that Manage Saves must be closed before loading an MPQ', () => {
+    const app = makeApp({ state: { show_saves: true, loading: false, started: false } });
+    startGame(app, { name: 'DIABDAT.MPQ' });
+    expect(app.showStartupNotice).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringMatching(/Close Manage Saves/i) })
+    );
+    expect(app.fileDropTarget.detach).not.toHaveBeenCalled();
   });
 
   it('imports a .sv save file and reports success', async () => {
@@ -90,7 +104,11 @@ describe('handleGameError', () => {
     expect(app.setState).toHaveBeenCalled();
     const updater = app.setState.mock.calls[0][0];
     const result = typeof updater === 'function' ? updater({ error: null }) : updater;
-    expect(result).toMatchObject({ error: { message: 'Something broke' } });
+    expect(result).toMatchObject({
+      error: { message: 'Something broke' },
+      loading: false,
+      started: false,
+    });
   });
 
   it('resolves the stack trace via mapStackTrace when a stack is provided', async () => {
@@ -121,6 +139,30 @@ describe('handleGameError', () => {
       .map((updater) => updater({ error: { message: 'previous' } }));
     expect(results.length).toBeGreaterThan(0);
     results.forEach((result) => expect(result).toBeFalsy());
+  });
+});
+
+describe('resetToStart', () => {
+  it('clears session UI state and re-attaches the drop target', () => {
+    const app = {
+      game: { dispose: jest.fn() },
+      runtimeListeners: { detach: jest.fn() },
+      fileDropTarget: { attach: jest.fn() },
+      setState: jest.fn(),
+    };
+    resetToStart(app);
+    expect(app.runtimeListeners.detach).toHaveBeenCalledTimes(1);
+    expect(app.game).toBeNull();
+    expect(app.fileDropTarget.attach).toHaveBeenCalledTimes(1);
+    expect(app.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        loading: false,
+        started: false,
+        error: null,
+        compress: false,
+        show_saves: false,
+      })
+    );
   });
 });
 
