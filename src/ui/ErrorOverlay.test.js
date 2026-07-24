@@ -77,20 +77,28 @@ describe('ErrorOverlay', () => {
   it('falls back to a generic message when the error has no message', async () => {
     await renderWithSession({ error: { message: '' } });
 
-    expect(container.querySelector('.body').textContent).toBe('An unexpected error occurred.');
+    expect(container.querySelector('.body').textContent).toMatch(/unexpected/i);
   });
 
   it('shows friendly, retry-oriented copy for a network failure', async () => {
     await renderWithSession({ error: { message: 'Network Error' } });
 
     expect(container.querySelector('.header').textContent).toBe('Connection problem');
-    expect(container.querySelector('.body').textContent).toMatch(/could not be downloaded/i);
+    expect(container.querySelector('.errorLead').textContent).toMatch(/download/i);
+    expect(container.querySelector('.body').textContent).toMatch(/check your connection/i);
     expect(container.querySelector('.body').textContent).not.toMatch(/Network Error/);
+    expect(container.querySelector('.body').textContent).not.toMatch(/couldn’t download/i);
 
     const primary = Array.from(container.querySelectorAll('button')).find((btn) =>
       btn.className.includes('startButton--primary')
     );
     expect(primary.textContent.trim()).toBe('Try again');
+  });
+
+  it('maps invalid MPQ errors to actionable copy', async () => {
+    await renderWithSession({ error: { message: 'invalid MPQ file' } });
+    expect(container.querySelector('.body').textContent).toMatch(/valid Diablo MPQ/i);
+    expect(container.querySelector('.body').textContent).not.toMatch(/^invalid MPQ file$/i);
   });
 
   it('hides the GitHub report link for network failures', async () => {

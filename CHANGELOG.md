@@ -22,6 +22,10 @@ All notable changes to this project will be documented in this file.
 
 - High-contrast coverage for install prompt and settings disclosure controls.
 
+### Changed
+
+- Error and notification copy: friendlier ErrorOverlay tips, mapped MPQ/spawn/assertion messages, no raw storage or transport jargon in banners, clearer multiplayer status text, and polished drop/offline/clipboard notices.
+
 ## [1.0.39] - Existing baseline
 
 ### Phase 0

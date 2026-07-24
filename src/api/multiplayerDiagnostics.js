@@ -1,4 +1,10 @@
-import { buffer_reader, read_packet, client_packet, server_packet, RejectionReason } from './packet';
+import {
+  buffer_reader,
+  read_packet,
+  client_packet,
+  server_packet,
+  RejectionReason,
+} from './packet';
 
 const DEFAULT_STATUS = 'idle';
 const DEFAULT_CATEGORY = null;
@@ -8,27 +14,27 @@ const noop = () => {};
 const rejectionReasonMap = {
   [RejectionReason.JOIN_ALREADY_IN_GAME]: {
     category: 'already_in_game',
-    message: 'You are already in a multiplayer game.',
+    message: 'You’re already in a multiplayer game.',
   },
   [RejectionReason.JOIN_GAME_NOT_FOUND]: {
     category: 'game_not_found',
-    message: 'Game not found. Verify the session ID and try again.',
+    message: 'No game found with that session ID. Check the ID and try again.',
   },
   [RejectionReason.JOIN_INCORRECT_PASSWORD]: {
     category: 'incorrect_password',
-    message: 'Incorrect password. Try again with the correct password.',
+    message: 'Incorrect password. Try again.',
   },
   [RejectionReason.JOIN_VERSION_MISMATCH]: {
     category: 'version_mismatch',
-    message: 'Version mismatch. Host and joiner must use compatible builds.',
+    message: 'Version mismatch. Host and guest must use the same app version.',
   },
   [RejectionReason.JOIN_GAME_FULL]: {
     category: 'game_full',
-    message: 'Game is full. Try another session.',
+    message: 'That game is full. Try another session.',
   },
   [RejectionReason.CREATE_GAME_EXISTS]: {
     category: 'game_exists',
-    message: 'A game with this session ID already exists.',
+    message: 'A game with this session ID already exists. Choose a different ID.',
   },
 };
 
@@ -70,10 +76,40 @@ function buildShareUrl(sessionId) {
 }
 
 export function mapRejectionReason(reason) {
-  return rejectionReasonMap[reason] || {
-    category: 'unknown',
-    message: `Join request rejected (reason code: ${reason}).`,
-  };
+  return (
+    rejectionReasonMap[reason] || {
+      category: 'unknown',
+      message: 'Couldn’t join that game. Ask the host for a new invite and try again.',
+    }
+  );
+}
+
+/**
+ * Map raw transport/library errors to short player-facing copy.
+ * Full detail stays in diagnostics event logs.
+ *
+ * @param {unknown} errorLike
+ * @returns {string}
+ */
+export function describeTransportError(errorLike) {
+  const raw = (errorLike && errorLike.message) || String(errorLike || '');
+  const lower = raw.toLowerCase();
+  if (!raw || lower === 'transport error' || lower === 'error') {
+    return 'Couldn’t connect. Check your network and try again.';
+  }
+  if (lower.includes('timeout') || lower.includes('timed out')) {
+    return 'Connection timed out. Try again in a moment.';
+  }
+  if (lower.includes('version')) {
+    return 'Version mismatch. Host and guest must use the same app version.';
+  }
+  if (lower.includes('packet too large') || lower.includes('parse')) {
+    return 'Received unexpected multiplayer data. Try reconnecting.';
+  }
+  if (lower.includes('peerjs') || lower.includes('websocket')) {
+    return 'Couldn’t reach the multiplayer service. Check your connection and try again.';
+  }
+  return 'Couldn’t connect. Check your network and try again.';
 }
 
 export function createMultiplayerDiagnostics(options = {}) {
@@ -105,7 +141,8 @@ export function createMultiplayerDiagnostics(options = {}) {
   });
 
   function setStatus(nextStatus, nextCategory, nextMessage) {
-    const hasChanged = status !== nextStatus || category !== nextCategory || message !== nextMessage;
+    const hasChanged =
+      status !== nextStatus || category !== nextCategory || message !== nextMessage;
     if (nextStatus === 'connected' || nextStatus === 'idle') {
       retryCount = 0;
     }
@@ -117,7 +154,14 @@ export function createMultiplayerDiagnostics(options = {}) {
     }
   }
 
-  function record({source, type, nextStatus = status, nextCategory = category, nextMessage = message, details = {}}) {
+  function record({
+    source,
+    type,
+    nextStatus = status,
+    nextCategory = category,
+    nextMessage = message,
+    details = {},
+  }) {
     const entry = {
       timestamp: now(),
       source,
@@ -137,61 +181,61 @@ export function createMultiplayerDiagnostics(options = {}) {
   }
 
   function recordProtocolPacket(direction, decoded) {
-    const details = {direction, packetType: decoded.type.code};
-    record({source: 'protocol', type: 'packet', details});
+    const details = { direction, packetType: decoded.type.code };
+    record({ source: 'protocol', type: 'packet', details });
   }
 
   function observeOutboundPacket(data) {
     try {
       const packets = toPacketList(data, client_packet);
-      packets.forEach(decoded => {
+      packets.forEach((decoded) => {
         recordProtocolPacket('outbound', decoded);
         switch (decoded.type.code) {
-        case client_packet.info.code:
-          clientVersion = decoded.packet.version;
-          record({
-            source: 'protocol',
-            type: 'client_info',
-            details: {version: clientVersion},
-          });
-          break;
-        case client_packet.create_game.code:
-          sessionId = decoded.packet.name;
-          shareUrl = buildShareUrl(sessionId);
-          handshakeState = 'awaiting_join_result';
-          record({
-            source: 'protocol',
-            type: 'create_game',
-            nextStatus: 'connecting',
-            nextCategory: null,
-            nextMessage: `Hosting session "${sessionId}"...`,
-            details: {sessionId},
-          });
-          break;
-        case client_packet.join_game.code:
-          sessionId = decoded.packet.name;
-          shareUrl = buildShareUrl(sessionId);
-          handshakeState = 'awaiting_join_result';
-          record({
-            source: 'protocol',
-            type: 'join_game',
-            nextStatus: 'connecting',
-            nextCategory: null,
-            nextMessage: `Joining session "${sessionId}"...`,
-            details: {sessionId},
-          });
-          break;
-        case client_packet.leave_game.code:
-          handshakeState = 'idle';
-          record({
-            source: 'protocol',
-            type: 'leave_game',
-            nextStatus: 'idle',
-            nextCategory: null,
-            nextMessage: 'Disconnected.',
-          });
-          break;
-        default:
+          case client_packet.info.code:
+            clientVersion = decoded.packet.version;
+            record({
+              source: 'protocol',
+              type: 'client_info',
+              details: { version: clientVersion },
+            });
+            break;
+          case client_packet.create_game.code:
+            sessionId = decoded.packet.name;
+            shareUrl = buildShareUrl(sessionId);
+            handshakeState = 'awaiting_join_result';
+            record({
+              source: 'protocol',
+              type: 'create_game',
+              nextStatus: 'connecting',
+              nextCategory: null,
+              nextMessage: `Hosting “${sessionId}”…`,
+              details: { sessionId },
+            });
+            break;
+          case client_packet.join_game.code:
+            sessionId = decoded.packet.name;
+            shareUrl = buildShareUrl(sessionId);
+            handshakeState = 'awaiting_join_result';
+            record({
+              source: 'protocol',
+              type: 'join_game',
+              nextStatus: 'connecting',
+              nextCategory: null,
+              nextMessage: `Joining “${sessionId}”…`,
+              details: { sessionId },
+            });
+            break;
+          case client_packet.leave_game.code:
+            handshakeState = 'idle';
+            record({
+              source: 'protocol',
+              type: 'leave_game',
+              nextStatus: 'idle',
+              nextCategory: null,
+              nextMessage: 'Left the game.',
+            });
+            break;
+          default:
         }
       });
     } catch (error) {
@@ -200,8 +244,8 @@ export function createMultiplayerDiagnostics(options = {}) {
         type: 'outbound_decode_error',
         nextStatus: 'failed',
         nextCategory: 'protocol_mismatch',
-        nextMessage: 'Failed to parse outbound multiplayer packet.',
-        details: {error: String(error)},
+        nextMessage: 'Couldn’t send multiplayer data. Try reconnecting.',
+        details: { error: String(error) },
       });
     }
   }
@@ -209,78 +253,79 @@ export function createMultiplayerDiagnostics(options = {}) {
   function observeInboundPacket(data) {
     try {
       const packets = toPacketList(data, server_packet);
-      packets.forEach(decoded => {
+      packets.forEach((decoded) => {
         recordProtocolPacket('inbound', decoded);
         switch (decoded.type.code) {
-        case server_packet.info.code:
-          if (clientVersion != null && decoded.packet.version !== clientVersion) {
+          case server_packet.info.code:
+            if (clientVersion != null && decoded.packet.version !== clientVersion) {
+              record({
+                source: 'protocol',
+                type: 'server_info_mismatch',
+                nextStatus: 'failed',
+                nextCategory: 'version_mismatch',
+                nextMessage: 'Version mismatch. Host and guest must use the same app version.',
+                details: { clientVersion, serverVersion: decoded.packet.version },
+              });
+            }
+            break;
+          case server_packet.join_accept.code:
+            if (handshakeState !== 'awaiting_join_result') {
+              record({
+                source: 'protocol',
+                type: 'handshake_anomaly',
+                nextStatus: 'connected',
+                nextCategory: 'protocol_mismatch',
+                nextMessage:
+                  'Connected, but the handshake was out of order. Try reconnecting if play feels stuck.',
+                details: { handshakeState },
+              });
+            } else {
+              record({
+                source: 'protocol',
+                type: 'join_accept',
+                nextStatus: 'connected',
+                nextCategory: null,
+                nextMessage: sessionId ? `Connected to “${sessionId}”.` : 'Connected.',
+                details: { index: decoded.packet.index },
+              });
+            }
+            handshakeState = 'connected';
+            break;
+          case server_packet.join_reject.code: {
+            const rejection = mapRejectionReason(decoded.packet.reason);
+            handshakeState = 'failed';
             record({
               source: 'protocol',
-              type: 'server_info_mismatch',
+              type: 'join_reject',
               nextStatus: 'failed',
-              nextCategory: 'version_mismatch',
-              nextMessage: 'Version mismatch detected during handshake.',
-              details: {clientVersion, serverVersion: decoded.packet.version},
+              nextCategory: rejection.category,
+              nextMessage: rejection.message,
+              details: { reason: decoded.packet.reason },
             });
+            break;
           }
-          break;
-        case server_packet.join_accept.code:
-          if (handshakeState !== 'awaiting_join_result') {
+          case server_packet.connect.code:
             record({
               source: 'protocol',
-              type: 'handshake_anomaly',
-              nextStatus: 'connected',
-              nextCategory: 'protocol_mismatch',
-              nextMessage: 'Connected, but handshake arrived out of sequence.',
-              details: {handshakeState},
-            });
-          } else {
-            record({
-              source: 'protocol',
-              type: 'join_accept',
+              type: 'peer_connected',
               nextStatus: 'connected',
               nextCategory: null,
-              nextMessage: sessionId ? `Connected to "${sessionId}".` : 'Connected.',
-              details: {index: decoded.packet.index},
+              nextMessage: sessionId ? `Connected to “${sessionId}”.` : 'Connected.',
+              details: { id: decoded.packet.id },
             });
-          }
-          handshakeState = 'connected';
-          break;
-        case server_packet.join_reject.code: {
-          const rejection = mapRejectionReason(decoded.packet.reason);
-          handshakeState = 'failed';
-          record({
-            source: 'protocol',
-            type: 'join_reject',
-            nextStatus: 'failed',
-            nextCategory: rejection.category,
-            nextMessage: rejection.message,
-            details: {reason: decoded.packet.reason},
-          });
-          break;
-        }
-        case server_packet.connect.code:
-          record({
-            source: 'protocol',
-            type: 'peer_connected',
-            nextStatus: 'connected',
-            nextCategory: null,
-            nextMessage: sessionId ? `Connected to "${sessionId}".` : 'Connected.',
-            details: {id: decoded.packet.id},
-          });
-          break;
-        case server_packet.disconnect.code:
-          record({
-            source: 'protocol',
-            type: 'peer_disconnected',
-            nextStatus: 'retrying',
-            nextCategory: 'disconnected',
-            nextMessage: 'Connection dropped. Retrying...',
-            details: {id: decoded.packet.id, reason: decoded.packet.reason},
-          });
-          handshakeState = 'awaiting_join_result';
-          break;
-        default:
+            break;
+          case server_packet.disconnect.code:
+            record({
+              source: 'protocol',
+              type: 'peer_disconnected',
+              nextStatus: 'retrying',
+              nextCategory: 'disconnected',
+              nextMessage: 'Connection dropped. Reconnecting…',
+              details: { id: decoded.packet.id, reason: decoded.packet.reason },
+            });
+            handshakeState = 'awaiting_join_result';
+            break;
+          default:
         }
       });
     } catch (error) {
@@ -289,70 +334,70 @@ export function createMultiplayerDiagnostics(options = {}) {
         type: 'inbound_decode_error',
         nextStatus: 'failed',
         nextCategory: 'protocol_mismatch',
-        nextMessage: 'Failed to parse inbound multiplayer packet.',
-        details: {error: String(error)},
+        nextMessage: 'Received unexpected multiplayer data. Try reconnecting.',
+        details: { error: String(error) },
       });
     }
   }
 
   function observeTransportLifecycle(event = {}) {
-    const {type = 'unknown'} = event;
+    const { type = 'unknown' } = event;
     switch (type) {
-    case 'opening':
-    case 'connect_attempt':
-      record({
-        source: 'transport',
-        type,
-        nextStatus: 'connecting',
-        nextCategory: null,
-        nextMessage: 'Connecting...',
-        details: event,
-      });
-      break;
-    case 'open':
-    case 'connected':
-      record({
-        source: 'transport',
-        type,
-        nextStatus: 'connected',
-        nextCategory: null,
-        nextMessage: sessionId ? `Connected to "${sessionId}".` : 'Connected.',
-        details: event,
-      });
-      break;
-    case 'retrying':
-      record({
-        source: 'transport',
-        type,
-        nextStatus: 'retrying',
-        nextCategory: 'transport_retry',
-        nextMessage: 'Retrying multiplayer connection...',
-        details: event,
-      });
-      break;
-    case 'closed':
-    case 'disconnected':
-      record({
-        source: 'transport',
-        type,
-        nextStatus: 'retrying',
-        nextCategory: 'disconnected',
-        nextMessage: 'Connection closed. Retrying...',
-        details: event,
-      });
-      break;
-    case 'error':
-      record({
-        source: 'transport',
-        type,
-        nextStatus: 'failed',
-        nextCategory: event.category || 'transport_error',
-        nextMessage: event.message || 'Multiplayer connection failed.',
-        details: event,
-      });
-      break;
-    default:
-      record({source: 'transport', type, details: event});
+      case 'opening':
+      case 'connect_attempt':
+        record({
+          source: 'transport',
+          type,
+          nextStatus: 'connecting',
+          nextCategory: null,
+          nextMessage: 'Connecting…',
+          details: event,
+        });
+        break;
+      case 'open':
+      case 'connected':
+        record({
+          source: 'transport',
+          type,
+          nextStatus: 'connected',
+          nextCategory: null,
+          nextMessage: sessionId ? `Connected to “${sessionId}”.` : 'Connected.',
+          details: event,
+        });
+        break;
+      case 'retrying':
+        record({
+          source: 'transport',
+          type,
+          nextStatus: 'retrying',
+          nextCategory: 'transport_retry',
+          nextMessage: 'Reconnecting…',
+          details: event,
+        });
+        break;
+      case 'closed':
+      case 'disconnected':
+        record({
+          source: 'transport',
+          type,
+          nextStatus: 'retrying',
+          nextCategory: 'disconnected',
+          nextMessage: 'Connection closed. Reconnecting…',
+          details: event,
+        });
+        break;
+      case 'error':
+        record({
+          source: 'transport',
+          type,
+          nextStatus: 'failed',
+          nextCategory: event.category || 'transport_error',
+          nextMessage: event.message || 'Couldn’t connect. Check your network and try again.',
+          details: event,
+        });
+        break;
+      default:
+        record({ source: 'transport', type, details: event });
     }
   }
 
@@ -363,7 +408,7 @@ export function createMultiplayerDiagnostics(options = {}) {
       type: 'error',
       nextStatus: 'failed',
       nextCategory,
-      nextMessage: (errorLike && errorLike.message) || String(errorLike || 'Transport error'),
+      nextMessage: describeTransportError(errorLike),
       details: {
         ...details,
         error: String(errorLike),
@@ -380,7 +425,7 @@ export function createMultiplayerDiagnostics(options = {}) {
         type,
         nextStatus: 'retrying',
         nextCategory: 'manual_retry',
-        nextMessage: 'Retry requested...',
+        nextMessage: 'Reconnecting…',
         details,
       });
       return;
@@ -396,7 +441,7 @@ export function createMultiplayerDiagnostics(options = {}) {
       });
       return;
     }
-    record({source: 'app', type, details});
+    record({ source: 'app', type, details });
   }
 
   return {

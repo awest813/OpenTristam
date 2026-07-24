@@ -119,7 +119,7 @@ export default class SaveManager extends React.Component {
         .catch(() =>
           this.notify({
             tone: 'error',
-            message: `Could not import “${file.name}”. Make sure it is a valid .sv save file.`,
+            message: `Couldn’t import “${file.name}”. Make sure it’s a valid .sv save file.`,
           })
         );
     }

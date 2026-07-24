@@ -409,17 +409,21 @@ class App extends React.Component {
   copySessionId = async () => {
     const { multiplayerSessionId } = this.state;
     const copied = await this.copyText(multiplayerSessionId);
-    if (copied) {
-      this.setState({ multiplayerMessage: 'Session ID copied to clipboard.' });
-    }
+    this.setState({
+      multiplayerMessage: copied
+        ? 'Session ID copied.'
+        : 'Couldn’t copy the session ID. Copy it manually from the banner.',
+    });
   };
 
   copyShareLink = async () => {
     const { multiplayerShareUrl } = this.state;
     const copied = await this.copyText(multiplayerShareUrl);
-    if (copied) {
-      this.setState({ multiplayerMessage: 'Share link copied to clipboard.' });
-    }
+    this.setState({
+      multiplayerMessage: copied
+        ? 'Invite link copied.'
+        : 'Couldn’t copy the invite link. Copy it manually from the address bar.',
+    });
   };
 
   dismissMultiplayerNotice = () => {
@@ -900,6 +904,7 @@ class App extends React.Component {
     } = this.state;
     const sessionContextValue = this.getSessionContextValue();
     const touchPresetClass = `touch-preset-${touchLayoutPreset || DEFAULT_TOUCH_LAYOUT_PRESET}`;
+    const dropHintTitle = compress ? 'Drop file to compress' : 'Drop file to import';
     const dropHint = compress
       ? 'Drop an MPQ file here to compress it.'
       : 'Drop DIABDAT.MPQ or a .sv save file here.';
@@ -919,13 +924,13 @@ class App extends React.Component {
             <div className="updateBanner" role="status" aria-live="polite" aria-atomic="true">
               A new version is available.{' '}
               <button type="button" onClick={this.applySwUpdate}>
-                Reload
+                Reload to update
               </button>
             </div>
           )}
           {offlineReady && (
             <div className="offlineReadyToast" role="status" aria-live="polite" aria-atomic="true">
-              App is ready to work offline.{' '}
+              Ready to play offline.{' '}
               <button
                 type="button"
                 onClick={this.dismissOfflineReady}
@@ -937,8 +942,8 @@ class App extends React.Component {
           )}
           {this.state.storageError && (
             <div className="storageBanner" role="alert" aria-live="assertive" aria-atomic="true">
-              Save storage unavailable — game progress will not be saved.{' '}
-              <small>({this.state.storageError})</small>
+              Save storage isn’t available in this browser — progress won’t be kept between
+              sessions. You can still play.
             </div>
           )}
           <MultiplayerStatusBanner />
@@ -965,7 +970,7 @@ class App extends React.Component {
           )}
           {dropping > 0 && (
             <div className="dropHint" role="status" aria-live="polite" aria-atomic="true">
-              <div className="dropHintTitle">Drop file to import</div>
+              <div className="dropHintTitle">{dropHintTitle}</div>
               <div className="dropHintBody">{dropHint}</div>
             </div>
           )}

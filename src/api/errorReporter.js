@@ -20,13 +20,32 @@ const NETWORK_ERROR_PATTERNS = [
   /failed to load remote file/i,
 ];
 
+// Known engine/loader strings that should never be shown raw to players.
+const FRIENDLY_ERROR_PATTERNS = [
+  {
+    pattern: /invalid spawn\.mpq size/i,
+    message:
+      'The shareware download looks incomplete or corrupted. Clear your browser cache, then reload and try again.',
+  },
+  {
+    pattern: /invalid mpq/i,
+    message:
+      'That file doesn’t look like a valid Diablo MPQ. Use DIABDAT.MPQ from a retail install, or try the shareware option.',
+  },
+  {
+    pattern: /assertion failed/i,
+    message:
+      'The game hit an internal error and had to stop. You can report it on GitHub if it keeps happening.',
+  },
+];
+
 /**
  * Translate a raw startup error message into friendly, actionable copy.
  *
  * Network/offline failures during the data download are not bugs, so we give
- * the player a "check your connection and try again" message instead of an
- * inscrutable "Network Error". The raw message is left untouched on the error
- * object so the GitHub issue report still carries the original detail.
+ * the player a short tip instead of an inscrutable "Network Error". The raw
+ * message is left untouched on the error object so the GitHub issue report
+ * still carries the original detail.
  *
  * @param {string|undefined} rawMessage The original error message.
  * @returns {{isNetwork: boolean, message: string}}
@@ -39,15 +58,22 @@ export function describeStartupError(rawMessage) {
   if (looksNetwork) {
     return {
       isNetwork: true,
+      // Lead line already says the download failed — keep the body as the tip.
       message: offline
-        ? 'You appear to be offline. The game data could not be downloaded — reconnect to the internet and try again.'
-        : 'The game data could not be downloaded. This is usually a temporary network problem — check your connection and try again.',
+        ? 'Reconnect to the internet, then try again.'
+        : 'Check your connection and try again. This is usually temporary.',
     };
+  }
+
+  for (const entry of FRIENDLY_ERROR_PATTERNS) {
+    if (entry.pattern.test(message)) {
+      return { isNetwork: false, message: entry.message };
+    }
   }
 
   return {
     isNetwork: false,
-    message: message || 'An unexpected error occurred.',
+    message: message || 'Something unexpected went wrong. Try restarting the game.',
   };
 }
 

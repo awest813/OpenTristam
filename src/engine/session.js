@@ -28,7 +28,7 @@ export function startGame(app, file) {
       .catch(() => {
         notify(app, {
           tone: 'error',
-          message: `Could not import “${file.name}”. Make sure it is a valid .sv save file.`,
+          message: `Couldn’t import “${file.name}”. Make sure it’s a valid .sv save file.`,
         });
       });
     return;
@@ -40,7 +40,7 @@ export function startGame(app, file) {
     notify(app, {
       tone: 'error',
       message:
-        'That is not an MPQ file. Diablo data comes as DIABDAT.MPQ — if you have a GoG installer, install it on PC first and use the MPQ from the install folder.',
+        'That isn’t an MPQ file. Use DIABDAT.MPQ from a Diablo install (for example from GOG), or drop a .sv save instead.',
     });
     return;
   }

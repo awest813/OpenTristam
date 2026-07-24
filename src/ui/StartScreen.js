@@ -76,7 +76,7 @@ export default function StartScreen(props) {
             </li>
             <li>
               <strong>Retail:</strong> you need <strong>DIABDAT.MPQ</strong> from a copy you own (
-              <ExternalLink href="https://www.gog.com/game/diablo">GoG</ExternalLink>
+              <ExternalLink href="https://www.gog.com/game/diablo">GOG</ExternalLink>
               ). Drag it onto the page or use <strong>Select MPQ</strong>.
             </li>
             <li>

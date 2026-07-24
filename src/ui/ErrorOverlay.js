@@ -17,7 +17,7 @@ export default function ErrorOverlay(props) {
   const { isNetwork, message } = describeStartupError(error.message);
   const heading = isNetwork ? 'Connection problem' : 'Something went wrong';
   const lead = isNetwork
-    ? 'The game data could not be downloaded.'
+    ? 'Couldn’t download the game data.'
     : 'The game hit an unexpected error and had to stop.';
   const primaryActionLabel = isNetwork ? 'Try again' : 'Restart game';
 

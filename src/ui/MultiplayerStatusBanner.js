@@ -3,16 +3,15 @@ import classNames from 'classnames';
 import { useSession } from '../engine/sessionContext';
 
 const statusLabels = {
-  connecting: 'Connecting',
+  connecting: 'Connecting…',
   connected: 'Connected',
-  retrying: 'Retrying',
-  failed: 'Failed',
+  retrying: 'Reconnecting…',
+  failed: 'Connection failed',
 };
 
 export default function MultiplayerStatusBanner(props) {
   const session = useSession();
   const status = props.status || session.multiplayerStatus;
-  const category = props.category || session.multiplayerErrorCategory;
   const message = props.message || session.multiplayerMessage;
   const sessionId = props.sessionId || session.multiplayerSessionId;
   const shareUrl = props.shareUrl || session.multiplayerShareUrl;
@@ -45,16 +44,14 @@ export default function MultiplayerStatusBanner(props) {
       aria-atomic="true"
     >
       <div className="multiplayerBanner-main">
-        {isConnecting && (
-          <span className="multiplayerBanner-spinner" aria-hidden="true"/>
-        )}
+        {isConnecting && <span className="multiplayerBanner-spinner" aria-hidden="true" />}
         <strong className="multiplayerBanner-title">{statusLabels[status] || status}</strong>
         {status === 'retrying' && retryCount > 0 && (
           <span className="multiplayerBanner-retry-count" aria-label={`Attempt ${retryCount}`}>
             #{retryCount}
           </span>
         )}
-        {category && <span className="multiplayerBanner-category">{category.replace(/_/g, ' ')}</span>}
+        {/* Category stays in diagnostics/state for logging; the message is the player-facing text. */}
         {message && <span className="multiplayerBanner-message">{message}</span>}
         {sessionId && (
           <span className="multiplayerBanner-session-id" aria-label={`Session ID: ${sessionId}`}>
@@ -64,18 +61,32 @@ export default function MultiplayerStatusBanner(props) {
       </div>
       <div className="multiplayerBanner-actions">
         {(status === 'retrying' || status === 'failed') && (
-          <button type="button" onClick={onRetry}>{primaryActionLabel}</button>
+          <button type="button" onClick={onRetry}>
+            {primaryActionLabel}
+          </button>
         )}
         {status === 'connected' && (
-          <button type="button" onClick={onReconnect}>Reconnect</button>
+          <button type="button" onClick={onReconnect}>
+            Reconnect
+          </button>
         )}
         {sessionId && (
-          <button type="button" onClick={onCopySessionId} aria-label="Copy session ID to clipboard">Copy ID</button>
+          <button type="button" onClick={onCopySessionId} aria-label="Copy session ID to clipboard">
+            Copy ID
+          </button>
         )}
         {shareUrl && (
-          <button type="button" onClick={onCopyShareLink} aria-label="Copy share link to clipboard">Copy Invite Link</button>
+          <button
+            type="button"
+            onClick={onCopyShareLink}
+            aria-label="Copy invite link to clipboard"
+          >
+            Copy invite link
+          </button>
         )}
-        <button type="button" onClick={onDismiss}>Dismiss</button>
+        <button type="button" onClick={onDismiss}>
+          Dismiss
+        </button>
       </div>
     </div>
   );
