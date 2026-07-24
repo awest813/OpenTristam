@@ -53,11 +53,14 @@ export default function StartScreen(props) {
 
   return (
     <DialogFrame className="start" ariaLabel="Start Diablo">
-      <div className="startTitle" aria-hidden="true">
-        <span className="startTitleDeco">⚔</span>
-        <span className="startTitleText">DIABLO</span>
-        <span className="startTitleDeco">⚔</span>
-      </div>
+      <header className="startHeader">
+        <div className="startTitle" aria-hidden="true">
+          <span className="startTitleDeco">⚔</span>
+          <span className="startTitleText">DIABLO</span>
+          <span className="startTitleDeco">⚔</span>
+        </div>
+        <p className="startBrand">OpenTristam</p>
+      </header>
 
       {showTesterWelcome && (
         <div className="testerWelcome" role="note" aria-live="polite">
@@ -68,8 +71,8 @@ export default function StartScreen(props) {
           </p>
           <ul className="testerWelcomeList">
             <li>
-              <strong>Fastest path:</strong> use <strong>Play Shareware</strong> below—no files
-              needed (first launch may download data).
+              <strong>Fastest path:</strong> use <strong>Play Shareware</strong>—no files needed
+              (first launch may download data).
             </li>
             <li>
               <strong>Retail:</strong> you need <strong>DIABDAT.MPQ</strong> from a copy you own (
@@ -77,8 +80,8 @@ export default function StartScreen(props) {
               ). Drag it onto the page or use <strong>Select MPQ</strong>.
             </li>
             <li>
-              <strong>Saves:</strong> stored in this browser (IndexedDB). After a character exists,
-              use <strong>Manage Saves</strong> to export or clean up.
+              <strong>Saves:</strong> stored in this browser. After a character exists, use{' '}
+              <strong>Manage Saves</strong> to export or clean up.
             </li>
           </ul>
           <button type="button" className="linkButton" onClick={onDismissTesterWelcome}>
@@ -88,10 +91,8 @@ export default function StartScreen(props) {
       )}
 
       <p className="startMeta">
-        Web port based on reconstructed source (
-        <ExternalLink href="https://github.com/awest813/OpenTristam">
-          project on GitHub
-        </ExternalLink>
+        Browser port of the reconstructed engine (
+        <ExternalLink href="https://github.com/awest813/OpenTristam">GitHub</ExternalLink>
         ). Not affiliated with Blizzard.
       </p>
 
@@ -139,113 +140,102 @@ export default function StartScreen(props) {
         }}
       />
 
-      <ol className="startStepList">
-        <li>
-          <span className="startStepTitle">Choose how to load data</span>
-          Shareware is the quickest smoke test; retail needs your <strong>DIABDAT.MPQ</strong>. Use{' '}
-          <strong>Compress the MPQ</strong> on the Retail card first if you want a smaller upload.
-        </li>
-        <li>
-          <span className="startStepTitle">Saves and issues</span>
-          {hasSaves
-            ? 'You have save files in this browser—open Manage Saves to download or remove them.'
-            : 'After you play, saves appear here; use Manage Saves to back them up.'}{' '}
-          If something breaks, use the error screen’s link to report on GitHub with steps to
-          reproduce.
-        </li>
-      </ol>
-
       {showMobileOnboarding && (
         <div className="mobileOnboarding" role="note" aria-live="polite">
-          <div className="mobileOnboardingTitle">Mobile Quick Start</div>
-          <ul>
-            <li>
-              Tap <strong>Select MPQ</strong> to import your retail MPQ file from device storage.
-            </li>
-            <li>
-              Use <strong>Play Shareware</strong> for immediate play without importing files.
-            </li>
-            <li>Touch controls appear when you start playing; customize layout below.</li>
-          </ul>
+          <div className="mobileOnboardingTitle">Mobile tip</div>
+          <p className="mobileOnboardingLead">
+            Use <strong>Play Shareware</strong> for an immediate try, or <strong>Select MPQ</strong>{' '}
+            to import retail data from device storage. Touch controls appear once the game starts.
+          </p>
           <button type="button" className="linkButton" onClick={onDismissMobileOnboarding}>
             Got it
           </button>
         </div>
       )}
-      {isTouchDevice && (
-        <div className="touchSettings" role="group" aria-label="Touch settings">
-          <div className="touchSettingsTitle">Touch Settings</div>
-          <label className="touchSettingsRow">
-            <span>Layout preset</span>
-            <select
-              value={touchLayoutPreset}
-              onChange={(event) => onTouchLayoutPresetChange(event.target.value)}
-              onBlur={(event) => onTouchLayoutPresetChange(event.target.value)}
-            >
-              {TOUCH_LAYOUT_PRESETS.map((value) => (
-                <option key={value} value={value}>
-                  {TOUCH_LAYOUT_LABELS[value] || value}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="touchSettingsRow">
-            <span>Pan sensitivity</span>
-            <select
-              value={touchPanSensitivity}
-              onChange={(event) => onTouchPanSensitivityChange(event.target.value)}
-              onBlur={(event) => onTouchPanSensitivityChange(event.target.value)}
-            >
-              {TOUCH_PAN_SENSITIVITIES.map((value) => (
-                <option key={value} value={value}>
-                  {TOUCH_PAN_LABELS[value] || value}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      )}
-      <div className="displaySettings" role="group" aria-label="Display settings">
-        <div className="displaySettingsTitle">Display Settings</div>
-        <label className="displaySettingsRow">
-          <input
-            type="checkbox"
-            checked={highContrastMode}
-            onChange={(event) => onHighContrastModeChange(event.target.checked)}
-          />
-          <span>High-contrast UI mode</span>
-        </label>
-      </div>
 
-      {hasSaves && (
-        <div className="startActions">
-          <button
-            type="button"
-            className="startButton startButton--secondary"
-            onClick={onShowSaves}
-          >
-            Manage Saves
-          </button>
+      <details className="startSettings">
+        <summary className="startSettingsSummary">Settings</summary>
+        <div className="startSettingsBody">
+          {isTouchDevice && (
+            <div className="touchSettings" role="group" aria-label="Touch settings">
+              <div className="touchSettingsTitle">Touch</div>
+              <label className="touchSettingsRow">
+                <span>Layout preset</span>
+                <select
+                  value={touchLayoutPreset}
+                  onChange={(event) => onTouchLayoutPresetChange(event.target.value)}
+                  onBlur={(event) => onTouchLayoutPresetChange(event.target.value)}
+                >
+                  {TOUCH_LAYOUT_PRESETS.map((value) => (
+                    <option key={value} value={value}>
+                      {TOUCH_LAYOUT_LABELS[value] || value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="touchSettingsRow">
+                <span>Pan sensitivity</span>
+                <select
+                  value={touchPanSensitivity}
+                  onChange={(event) => onTouchPanSensitivityChange(event.target.value)}
+                  onBlur={(event) => onTouchPanSensitivityChange(event.target.value)}
+                >
+                  {TOUCH_PAN_SENSITIVITIES.map((value) => (
+                    <option key={value} value={value}>
+                      {TOUCH_PAN_LABELS[value] || value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+          <div className="displaySettings" role="group" aria-label="Display settings">
+            <div className="displaySettingsTitle">Display</div>
+            <label className="displaySettingsRow">
+              <input
+                type="checkbox"
+                checked={highContrastMode}
+                onChange={(event) => onHighContrastModeChange(event.target.checked)}
+              />
+              <span>High-contrast UI mode</span>
+            </label>
+          </div>
         </div>
-      )}
+      </details>
 
-      {showInstallPrompt && (
-        <div className="installPromptSection" role="complementary" aria-label="Install app">
-          <button
-            type="button"
-            className="startButton startButton--install"
-            onClick={onInstallPrompt}
-          >
-            Install App
-          </button>
-          <button
-            type="button"
-            className="installPromptDismiss"
-            onClick={onDismissInstallPrompt}
-            aria-label="Dismiss install prompt"
-          >
-            Not now
-          </button>
+      {(hasSaves || showInstallPrompt) && (
+        <div className="startFooter">
+          {hasSaves && (
+            <div className="startActions">
+              <button
+                type="button"
+                className="startButton startButton--secondary"
+                onClick={onShowSaves}
+              >
+                Manage Saves
+              </button>
+            </div>
+          )}
+
+          {showInstallPrompt && (
+            <div className="installPromptSection" role="complementary" aria-label="Install app">
+              <button
+                type="button"
+                className="startButton startButton--install"
+                onClick={onInstallPrompt}
+              >
+                Install App
+              </button>
+              <button
+                type="button"
+                className="installPromptDismiss"
+                onClick={onDismissInstallPrompt}
+                aria-label="Dismiss install prompt"
+              >
+                Not now
+              </button>
+            </div>
+          )}
         </div>
       )}
     </DialogFrame>

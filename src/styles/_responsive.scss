@@ -1,7 +1,8 @@
 @media (prefers-reduced-motion: reduce) {
   .App .loading,
   .App button,
-  .App .startPathCard {
+  .App .startPathCard,
+  .App .startSettingsSummary {
     animation: none !important;
     transition: none !important;
     transform: none !important;
@@ -20,5 +21,50 @@
   .startupNotice {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .App .start,
+  .App .error {
+    width: min(96vw, 560px);
+    max-width: 96vw;
+    max-height: min(92vh, 920px);
+    padding: 16px 14px;
+  }
+
+  .App .start {
+    .startTitleText {
+      font-size: 1.85em;
+      letter-spacing: 0.14em;
+    }
+    .startBrand {
+      letter-spacing: 0.2em;
+      font-size: 0.85em;
+    }
+    .startQuickPaths {
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .startPathCard {
+      flex-basis: 100%;
+      padding: 12px 12px;
+    }
+    .startPathCardCta,
+    .startButton {
+      max-width: none;
+      width: 100%;
+    }
+    .testerWelcome,
+    .mobileOnboarding {
+      font-size: 13px;
+    }
+  }
+}
+
+@media (max-width: 420px) {
+  .App .start .startTitleText {
+    font-size: 1.55em;
+    letter-spacing: 0.1em;
   }
 }
