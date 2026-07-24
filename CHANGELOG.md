@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
 - Community issue and pull request templates.
 - Collapsible start-screen Settings panel for touch/display controls.
 - OpenTristam brand line on the start header.
+- Soft recovery from the error overlay: **Try again** / **Back to start** keep packed assets when possible; **Copy details** copies diagnostics; **Reload page** remains for a full reset.
+- Storage banner **Retry storage** to re-probe IndexedDB after a fallback.
+- Dismissible service-worker update banner (“Not now”).
 
 ### Changed
 
@@ -17,6 +20,10 @@ All notable changes to this project will be documented in this file.
 - Decluttered start screen: removed redundant step list, tightened mobile onboarding, improved narrow-viewport layout.
 - Expanded design tokens for inset surfaces, text hierarchy, success accents, and touch targets.
 - MPQ compressor copy no longer relies on spatial “button below” instructions.
+- Dialogs focus primary actions first; file pickers reset so the same file can be reselected.
+- Drop hints and launch guards give contextual feedback instead of failing silently.
+- Multiplayer copy feedback uses notices instead of overwriting status text; reconnect labeled “Force reconnect”.
+- Compression failures stay in the compressor dialog with Try again / Back.
 
 ### Fixed
 
@@ -30,11 +37,7 @@ All notable changes to this project will be documented in this file.
 - Error reporting timeouts wrap `fileUrl` and `mapStackTrace` so a hung helper cannot leave `handleGameError` waiting forever.
 - MPQ compressor failures stay in the compressor UI with local retry/back instead of jumping to the global crash overlay.
 - Save/load and browser storage edge cases: persist-before-map updates, Safari write probe, delayed download URL revoke, error-overlay blob cleanup, multi-tab save list sync, `.sv`-only uploads, and drop `getAsFile()` null fallback.
-
-### Added
-
-- Soft recovery from the error overlay: **Try again** / **Back to start** keep packed assets when possible; **Copy details** copies diagnostics; **Reload page** remains for a full reset.
-- Storage banner **Retry storage** to re-probe IndexedDB after a fallback.
+- Offline-ready toast no longer appears during active gameplay.
 
 ## [1.0.39] - Existing baseline
 

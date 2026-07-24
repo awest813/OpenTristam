@@ -14,6 +14,8 @@ OpenTristam includes an accessibility-first UI layer around the game canvas.
 - High-contrast mode is available from the start screen settings panel.
 - Start-screen instructions avoid sensory/spatial phrasing (WCAG 1.3.3).
 - Primary actions target at least 44px touch height on narrow viewports.
+- Dialogs can prefer an initial focus target (primary CTA) instead of the first link.
+- Error recovery offers soft return-to-start plus copyable diagnostics.
 - Visible `:focus-visible` outlines are standardized across interactive controls.
 
 ## ARIA patterns in use

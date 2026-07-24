@@ -1432,6 +1432,16 @@ body,
       outline-offset: 2px;
     }
   }
+  .updateBanner-dismiss {
+    background: transparent;
+    border-color: transparent;
+    color: var(--color-text-muted);
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+      color: var(--color-text-primary);
+    }
+  }
 }
 
 .storageBanner {
@@ -1678,6 +1688,11 @@ body,
   .multiplayerBanner-message {
     font-size: 13px;
     color: #f0e0b8;
+  }
+
+  .multiplayerBanner-copy-feedback {
+    font-size: 12px;
+    color: #8dcf8d;
   }
 
   .multiplayerBanner-session-id {

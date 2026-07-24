@@ -16,6 +16,24 @@ export function getFocusableElements(container) {
   return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR));
 }
 
+function resolveInitialFocus(container, initialFocusSelector) {
+  if (!container) {
+    return null;
+  }
+  if (initialFocusSelector) {
+    const preferred = container.querySelector(initialFocusSelector);
+    if (preferred) {
+      return preferred;
+    }
+  }
+  const marked = container.querySelector('[data-initial-focus]');
+  if (marked) {
+    return marked;
+  }
+  const focusable = getFocusableElements(container);
+  return focusable.length > 0 ? focusable[0] : container;
+}
+
 export default function DialogFrame({
   children,
   className,
@@ -26,6 +44,7 @@ export default function DialogFrame({
   ariaLabel,
   ariaLabelledBy,
   ariaDescribedBy,
+  initialFocusSelector,
 }) {
   const containerRef = React.useRef(null);
   const previousFocusRef = React.useRef(null);
@@ -33,13 +52,9 @@ export default function DialogFrame({
   React.useLayoutEffect(() => {
     previousFocusRef.current = document.activeElement;
     const container = containerRef.current;
-    if (container) {
-      const focusable = getFocusableElements(container);
-      if (focusable.length > 0) {
-        focusable[0].focus();
-      } else {
-        container.focus();
-      }
+    const target = resolveInitialFocus(container, initialFocusSelector);
+    if (target && typeof target.focus === 'function') {
+      target.focus();
     }
 
     return () => {
@@ -48,46 +63,49 @@ export default function DialogFrame({
         prev.focus();
       }
     };
-  }, []);
+  }, [initialFocusSelector]);
 
-  const handleKeyDown = React.useCallback(event => {
-    if (event.key === 'Escape' && onEscape) {
-      event.preventDefault();
-      onEscape(event);
-      return;
-    }
-
-    if (!trapFocus || event.key !== 'Tab') {
-      return;
-    }
-
-    const container = containerRef.current;
-    const focusable = getFocusableElements(container);
-    if (focusable.length === 0) {
-      event.preventDefault();
-      if (container) {
-        container.focus();
-      }
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const active = document.activeElement;
-
-    if (event.shiftKey) {
-      if (active === first || active === container || !container.contains(active)) {
+  const handleKeyDown = React.useCallback(
+    (event) => {
+      if (event.key === 'Escape' && onEscape) {
         event.preventDefault();
-        last.focus();
+        onEscape(event);
+        return;
       }
-      return;
-    }
 
-    if (active === last || active === container || !container.contains(active)) {
-      event.preventDefault();
-      first.focus();
-    }
-  }, [onEscape, trapFocus]);
+      if (!trapFocus || event.key !== 'Tab') {
+        return;
+      }
+
+      const container = containerRef.current;
+      const focusable = getFocusableElements(container);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        if (container) {
+          container.focus();
+        }
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey) {
+        if (active === first || active === container || !container.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+        return;
+      }
+
+      if (active === last || active === container || !container.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
+    },
+    [onEscape, trapFocus]
+  );
 
   React.useEffect(() => {
     const container = containerRef.current;

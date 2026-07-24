@@ -43,10 +43,27 @@ describe('DialogFrame', () => {
       <DialogFrame className="start" ariaLabel="Dialog">
         <button type="button">First</button>
         <button type="button">Second</button>
-      </DialogFrame>,
+      </DialogFrame>
     );
 
     expect(document.activeElement.textContent).toBe('First');
+  });
+
+  it('focuses the preferred initial control when provided', async () => {
+    await renderDialog(
+      <DialogFrame
+        className="start"
+        ariaLabel="Dialog"
+        initialFocusSelector=".startButton--primary"
+      >
+        <a href="https://example.test">Docs</a>
+        <button type="button" className="startButton startButton--primary">
+          Play
+        </button>
+      </DialogFrame>
+    );
+
+    expect(document.activeElement.textContent).toBe('Play');
   });
 
   it('traps tab focus within dialog controls', async () => {
@@ -54,16 +71,20 @@ describe('DialogFrame', () => {
       <DialogFrame className="start" ariaLabel="Dialog">
         <button type="button">First</button>
         <button type="button">Second</button>
-      </DialogFrame>,
+      </DialogFrame>
     );
 
     const buttons = container.querySelectorAll('button');
     buttons[1].focus();
-    buttons[1].dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true}));
+    buttons[1].dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+    );
     expect(document.activeElement).toBe(buttons[0]);
 
     buttons[0].focus();
-    buttons[0].dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', shiftKey: true, bubbles: true, cancelable: true}));
+    buttons[0].dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true })
+    );
     expect(document.activeElement).toBe(buttons[1]);
   });
 
@@ -72,11 +93,13 @@ describe('DialogFrame', () => {
     await renderDialog(
       <DialogFrame className="start" ariaLabel="Dialog" onEscape={onEscape}>
         <button type="button">First</button>
-      </DialogFrame>,
+      </DialogFrame>
     );
 
     const frame = container.querySelector('.start');
-    frame.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    frame.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    );
     expect(onEscape).toHaveBeenCalledTimes(1);
   });
 
@@ -89,7 +112,7 @@ describe('DialogFrame', () => {
     await renderDialog(
       <DialogFrame className="start" ariaLabel="Dialog">
         <button type="button">First</button>
-      </DialogFrame>,
+      </DialogFrame>
     );
     expect(document.activeElement.textContent).toBe('First');
 

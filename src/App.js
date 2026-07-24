@@ -99,6 +99,7 @@ class App extends React.Component {
     has_saves: false,
     savesVersion: 0,
     updateAvailable: false,
+    updateDismissed: false,
     updateRegistration: null,
     storageError: null,
     storageRetrying: false,
@@ -224,7 +225,11 @@ class App extends React.Component {
 
   onSwUpdate = (e) => {
     const registration = e?.detail ?? window.__swRegistration ?? null;
-    this.setState({ updateAvailable: true, updateRegistration: registration });
+    this.setState({
+      updateAvailable: true,
+      updateDismissed: false,
+      updateRegistration: registration,
+    });
   };
 
   onSwOfflineReady = () => this.setState({ offlineReady: true });
@@ -431,18 +436,12 @@ class App extends React.Component {
 
   copySessionId = async () => {
     const { multiplayerSessionId } = this.state;
-    const copied = await this.copyText(multiplayerSessionId);
-    if (copied) {
-      this.setState({ multiplayerMessage: 'Session ID copied to clipboard.' });
-    }
+    return this.copyText(multiplayerSessionId);
   };
 
   copyShareLink = async () => {
     const { multiplayerShareUrl } = this.state;
-    const copied = await this.copyText(multiplayerShareUrl);
-    if (copied) {
-      this.setState({ multiplayerMessage: 'Share link copied to clipboard.' });
-    }
+    return this.copyText(multiplayerShareUrl);
   };
 
   dismissMultiplayerNotice = () => {
@@ -518,6 +517,7 @@ class App extends React.Component {
   };
 
   dismissOfflineReady = () => this.setState({ offlineReady: false });
+  dismissUpdateBanner = () => this.setState({ updateDismissed: true });
 
   // ─── Startup notices ────────────────────────────────────────────────────────
   // A single transient channel for pre-game feedback (e.g. "that's not an MPQ",
@@ -992,16 +992,21 @@ class App extends React.Component {
       error,
       dropping,
       updateAvailable,
+      updateDismissed,
       touchLayoutPreset,
       highContrastMode,
       compress,
+      show_saves,
       offlineReady,
     } = this.state;
     const sessionContextValue = this.getSessionContextValue();
     const touchPresetClass = `touch-preset-${touchLayoutPreset || DEFAULT_TOUCH_LAYOUT_PRESET}`;
-    const dropHint = compress
-      ? 'Drop an MPQ file here to compress it.'
-      : 'Drop DIABDAT.MPQ or a .sv save file here.';
+    let dropHint = 'Drop DIABDAT.MPQ or a .sv save file here.';
+    if (compress) {
+      dropHint = 'Drop an MPQ file here to compress it.';
+    } else if (show_saves) {
+      dropHint = 'Drop a .sv save file here to import it.';
+    }
     return (
       <SessionContext.Provider value={sessionContextValue}>
         <div
@@ -1014,15 +1019,22 @@ class App extends React.Component {
           })}
           ref={this.setElement}
         >
-          {updateAvailable && !started && (
+          {updateAvailable && !updateDismissed && !started && (
             <div className="updateBanner" role="status" aria-live="polite" aria-atomic="true">
               A new version is available.{' '}
               <button type="button" onClick={this.applySwUpdate}>
                 Reload
               </button>
+              <button
+                type="button"
+                className="updateBanner-dismiss"
+                onClick={this.dismissUpdateBanner}
+              >
+                Not now
+              </button>
             </div>
           )}
-          {offlineReady && (
+          {offlineReady && !started && (
             <div className="offlineReadyToast" role="status" aria-live="polite" aria-atomic="true">
               App is ready to work offline.{' '}
               <button

@@ -38,6 +38,7 @@ describe('CompressMpq', () => {
     expect(actions).toBeTruthy();
     const labels = Array.from(actions.querySelectorAll('button')).map((b) => b.textContent.trim());
     expect(labels).toEqual(['Back', 'Select MPQ']);
+    expect(actions.querySelector('.startButton--primary').textContent.trim()).toBe('Select MPQ');
   });
 
   it('opens the hidden file picker when Select MPQ is clicked', async () => {

@@ -138,6 +138,9 @@ describe('StartScreen', () => {
     expect(settings.open).toBe(false);
     expect(container.querySelector('.startBrand')?.textContent).toBe('OpenTristam');
     expect(container.querySelector('.startStepList')).toBeNull();
+    expect(container.querySelector('[role="dialog"]').getAttribute('aria-label')).toBe(
+      'OpenTristam — start game'
+    );
 
     const checkbox = container.querySelector('.displaySettings input[type="checkbox"]');
     expect(checkbox).not.toBeNull();

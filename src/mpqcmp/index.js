@@ -74,6 +74,19 @@ export default class CompressMpq extends React.Component {
     );
   }
 
+  renderFileInput() {
+    return (
+      <input
+        accept=".mpq"
+        type="file"
+        ref={this.fileInputRef}
+        style={{ display: 'none' }}
+        aria-label="Select MPQ file to compress"
+        onChange={this.parseFile}
+      />
+    );
+  }
+
   render() {
     const { url, started, progress, error } = this.state;
     if (error) {
@@ -154,14 +167,7 @@ export default class CompressMpq extends React.Component {
             Select MPQ
           </button>
         </div>
-        <input
-          accept=".mpq"
-          type="file"
-          ref={this.fileInputRef}
-          style={{ display: 'none' }}
-          aria-label="Select MPQ file to compress"
-          onChange={this.parseFile}
-        />
+        {this.renderFileInput()}
       </DialogFrame>
     );
   }

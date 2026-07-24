@@ -45,9 +45,10 @@ describe('MultiplayerStatusBanner', () => {
 
   it('renders failure state and invokes action callbacks', async () => {
     const retryMultiplayer = jest.fn();
-    const copySessionId = jest.fn();
-    const copyShareLink = jest.fn();
+    const copySessionId = jest.fn(async () => true);
+    const copyShareLink = jest.fn(async () => true);
     const dismissMultiplayerNotice = jest.fn();
+    const showNotice = jest.fn();
     await renderWithSession({
       multiplayerStatus: 'failed',
       multiplayerErrorCategory: 'game_not_found',
@@ -58,6 +59,7 @@ describe('MultiplayerStatusBanner', () => {
       copySessionId,
       copyShareLink,
       dismissMultiplayerNotice,
+      showNotice,
     });
 
     expect(container.textContent).toContain('Failed');
@@ -68,7 +70,7 @@ describe('MultiplayerStatusBanner', () => {
 
     const buttons = Array.from(container.querySelectorAll('button'));
     const retryButton = buttons.find((node) => node.textContent === 'Try again');
-    const reconnectButton = buttons.find((node) => node.textContent === 'Reconnect');
+    const reconnectButton = buttons.find((node) => node.textContent === 'Force reconnect');
     const copySessionButton = buttons.find((node) => node.textContent === 'Copy ID');
     const copyShareButton = buttons.find((node) => node.textContent === 'Copy Invite Link');
     const dismissButton = buttons.find((node) => node.textContent === 'Dismiss');
@@ -79,20 +81,23 @@ describe('MultiplayerStatusBanner', () => {
     expect(copyShareButton).toBeTruthy();
     expect(dismissButton).toBeTruthy();
 
-    act(() => {
+    await act(async () => {
       retryButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       copySessionButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       copyShareButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       dismissButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+      await Promise.resolve();
     });
 
     expect(retryMultiplayer).toHaveBeenCalledTimes(1);
     expect(copySessionId).toHaveBeenCalledTimes(1);
     expect(copyShareLink).toHaveBeenCalledTimes(1);
     expect(dismissMultiplayerNotice).toHaveBeenCalledTimes(1);
+    expect(showNotice).toHaveBeenCalled();
   });
 
-  it('renders reconnect action only when connected', async () => {
+  it('renders force-reconnect action only when connected', async () => {
     const reconnectMultiplayer = jest.fn();
     await renderWithSession({
       multiplayerStatus: 'connected',
@@ -100,7 +105,7 @@ describe('MultiplayerStatusBanner', () => {
     });
 
     const reconnectButton = Array.from(container.querySelectorAll('button')).find(
-      (node) => node.textContent === 'Reconnect'
+      (node) => node.textContent === 'Force reconnect'
     );
     expect(reconnectButton).toBeTruthy();
 
