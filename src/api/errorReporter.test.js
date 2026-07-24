@@ -71,7 +71,7 @@ describe('describeStartupError', () => {
   it('flags axios "Network Error" as a network failure with friendly copy', () => {
     const result = describeStartupError('Network Error');
     expect(result.isNetwork).toBe(true);
-    expect(result.message).toMatch(/could not be downloaded/i);
+    expect(result.message).toMatch(/check your connection/i);
     expect(result.message).not.toMatch(/Network Error/);
   });
 
@@ -85,21 +85,31 @@ describe('describeStartupError', () => {
     expect(describeStartupError(raw).isNetwork).toBe(true);
   });
 
-  it('treats a genuine game error as non-network and preserves the message', () => {
-    const result = describeStartupError('Assertion failed in level gen');
+  it('treats a genuine game error as non-network and preserves unknown messages', () => {
+    const result = describeStartupError('Something went terribly wrong');
     expect(result.isNetwork).toBe(false);
-    expect(result.message).toBe('Assertion failed in level gen');
+    expect(result.message).toBe('Something went terribly wrong');
+  });
+
+  it('maps known technical errors to friendly copy', () => {
+    expect(describeStartupError('invalid MPQ file').message).toMatch(/valid Diablo MPQ/i);
+    expect(describeStartupError('Invalid spawn.mpq size. Try clearing cache').message).toMatch(
+      /shareware download/i
+    );
+    expect(describeStartupError('Assertion failed in level gen').message).toMatch(
+      /internal error/i
+    );
   });
 
   it('falls back to a generic message when none is provided', () => {
-    expect(describeStartupError('').message).toBe('An unexpected error occurred.');
-    expect(describeStartupError(undefined).message).toBe('An unexpected error occurred.');
+    expect(describeStartupError('').message).toMatch(/unexpected/i);
+    expect(describeStartupError(undefined).message).toMatch(/unexpected/i);
   });
 
   it('treats any startup error as a network failure when the browser is offline', () => {
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
     const result = describeStartupError('Some unrelated message');
     expect(result.isNetwork).toBe(true);
-    expect(result.message).toMatch(/offline/i);
+    expect(result.message).toMatch(/reconnect/i);
   });
 });

@@ -3,32 +3,15 @@ import classNames from 'classnames';
 import { useSession } from '../engine/sessionContext';
 
 const statusLabels = {
-  connecting: 'Connecting',
+  connecting: 'Connecting…',
   connected: 'Connected',
-  retrying: 'Retrying',
-  failed: 'Failed',
+  retrying: 'Reconnecting…',
+  failed: 'Connection failed',
 };
-
-const categoryLabels = {
-  transport_retry: 'Reconnecting',
-  manual_retry: 'Manual retry',
-  protocol_mismatch: 'Version mismatch',
-  peer_disconnected: 'Peer disconnected',
-  relay_fallback: 'Using relay',
-  network_error: 'Network issue',
-};
-
-function formatCategory(category) {
-  if (!category) {
-    return '';
-  }
-  return categoryLabels[category] || category.replace(/_/g, ' ');
-}
 
 export default function MultiplayerStatusBanner(props) {
   const session = useSession();
   const status = props.status || session.multiplayerStatus;
-  const category = props.category || session.multiplayerErrorCategory;
   const message = props.message || session.multiplayerMessage;
   const sessionId = props.sessionId || session.multiplayerSessionId;
   const shareUrl = props.shareUrl || session.multiplayerShareUrl;
@@ -54,7 +37,6 @@ export default function MultiplayerStatusBanner(props) {
   const isFailure = status === 'failed';
   const isConnecting = status === 'connecting' || status === 'retrying';
   const primaryActionLabel = status === 'retrying' ? 'Retry now' : 'Try again';
-  const categoryLabel = formatCategory(category);
 
   const withCopyFeedback = async (action, successLabel) => {
     try {
@@ -89,7 +71,7 @@ export default function MultiplayerStatusBanner(props) {
             #{retryCount}
           </span>
         )}
-        {categoryLabel && <span className="multiplayerBanner-category">{categoryLabel}</span>}
+        {/* Category stays in diagnostics/state for logging; the message is the player-facing text. */}
         {message && <span className="multiplayerBanner-message">{message}</span>}
         {copyState && <span className="multiplayerBanner-copy-feedback">{copyState}</span>}
         {sessionId && (

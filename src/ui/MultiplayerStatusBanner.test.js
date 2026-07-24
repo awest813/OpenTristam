@@ -62,8 +62,9 @@ describe('MultiplayerStatusBanner', () => {
       showNotice,
     });
 
-    expect(container.textContent).toContain('Failed');
+    expect(container.textContent).toContain('Connection failed');
     expect(container.textContent).toContain('Session not found.');
+    expect(container.textContent).not.toMatch(/game not found/i);
     const banner = container.querySelector('.multiplayerBanner');
     expect(banner.getAttribute('role')).toBe('alert');
     expect(banner.getAttribute('aria-live')).toBe('assertive');
@@ -72,7 +73,7 @@ describe('MultiplayerStatusBanner', () => {
     const retryButton = buttons.find((node) => node.textContent === 'Try again');
     const reconnectButton = buttons.find((node) => node.textContent === 'Force reconnect');
     const copySessionButton = buttons.find((node) => node.textContent === 'Copy ID');
-    const copyShareButton = buttons.find((node) => node.textContent === 'Copy Invite Link');
+    const copyShareButton = buttons.find((node) => node.textContent === 'Copy invite link');
     const dismissButton = buttons.find((node) => node.textContent === 'Dismiss');
 
     expect(retryButton).toBeTruthy();
@@ -183,8 +184,8 @@ describe('MultiplayerStatusBanner', () => {
     });
     const buttons = Array.from(container.querySelectorAll('button'));
     const copySessionButton = buttons.find((node) => node.textContent === 'Copy ID');
-    const copyShareButton = buttons.find((node) => node.textContent === 'Copy Invite Link');
+    const copyShareButton = buttons.find((node) => node.textContent === 'Copy invite link');
     expect(copySessionButton.getAttribute('aria-label')).toBe('Copy session ID to clipboard');
-    expect(copyShareButton.getAttribute('aria-label')).toBe('Copy share link to clipboard');
+    expect(copyShareButton.getAttribute('aria-label')).toBe('Copy invite link to clipboard');
   });
 });

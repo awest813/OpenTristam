@@ -1001,10 +1001,13 @@ class App extends React.Component {
     } = this.state;
     const sessionContextValue = this.getSessionContextValue();
     const touchPresetClass = `touch-preset-${touchLayoutPreset || DEFAULT_TOUCH_LAYOUT_PRESET}`;
+    let dropHintTitle = 'Drop file to import';
     let dropHint = 'Drop DIABDAT.MPQ or a .sv save file here.';
     if (compress) {
+      dropHintTitle = 'Drop file to compress';
       dropHint = 'Drop an MPQ file here to compress it.';
     } else if (show_saves) {
+      dropHintTitle = 'Drop file to import';
       dropHint = 'Drop a .sv save file here to import it.';
     }
     return (
@@ -1023,7 +1026,7 @@ class App extends React.Component {
             <div className="updateBanner" role="status" aria-live="polite" aria-atomic="true">
               A new version is available.{' '}
               <button type="button" onClick={this.applySwUpdate}>
-                Reload
+                Reload to update
               </button>
               <button
                 type="button"
@@ -1036,7 +1039,7 @@ class App extends React.Component {
           )}
           {offlineReady && !started && (
             <div className="offlineReadyToast" role="status" aria-live="polite" aria-atomic="true">
-              App is ready to work offline.{' '}
+              Ready to play offline.{' '}
               <button
                 type="button"
                 onClick={this.dismissOfflineReady}
@@ -1083,7 +1086,7 @@ class App extends React.Component {
           )}
           {dropping > 0 && (
             <div className="dropHint" role="status" aria-live="polite" aria-atomic="true">
-              <div className="dropHintTitle">Drop file to import</div>
+              <div className="dropHintTitle">{dropHintTitle}</div>
               <div className="dropHintBody">{dropHint}</div>
             </div>
           )}

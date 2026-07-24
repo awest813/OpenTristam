@@ -39,6 +39,10 @@ All notable changes to this project will be documented in this file.
 - Save/load and browser storage edge cases: persist-before-map updates, Safari write probe, delayed download URL revoke, error-overlay blob cleanup, multi-tab save list sync, `.sv`-only uploads, and drop `getAsFile()` null fallback.
 - Offline-ready toast no longer appears during active gameplay.
 
+### Changed
+
+- Error and notification copy: friendlier ErrorOverlay tips, mapped MPQ/spawn/assertion messages, no raw storage or transport jargon in banners, clearer multiplayer status text, and polished drop/offline/clipboard notices.
+
 ## [1.0.39] - Existing baseline
 
 ### Phase 0
