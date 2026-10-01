@@ -193,9 +193,10 @@ async function do_load_game(api, audio, mpq, spawn) {
  * @param {object} api Runtime surface exposed by App for rendering, input, and callbacks.
  * @param {File|undefined|null} mpq Uploaded MPQ file when launching retail mode.
  * @param {boolean} spawn Whether to launch in shareware (spawn) mode.
+ * @param {object} [audio] Sound backend; callers that load this module lazily
+ *   create it up front so the AudioContext starts inside the user gesture.
  * @returns {Promise<Function>} Promise resolving to a callable game API bridge.
  */
-export default function load_game(api, mpq, spawn) {
-  const audio = init_sound();
+export default function load_game(api, mpq, spawn, audio = init_sound()) {
   return do_load_game(api, audio, mpq, spawn);
 }

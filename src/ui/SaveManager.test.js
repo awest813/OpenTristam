@@ -34,6 +34,26 @@ describe('SaveManager', () => {
     });
   }
 
+  it('waits for saves before showing the empty state, keeping focus in the dialog', async () => {
+    let resolveFs;
+    const fs = new Promise((resolve) => {
+      resolveFs = resolve;
+    });
+    await renderWithSession({ fs });
+
+    expect(container.querySelector('.savesEmpty')).toBeNull();
+    expect(container.contains(document.activeElement)).toBe(true);
+
+    await act(async () => {
+      resolveFs({ files: new Map([['hero.sv', new Uint8Array([1])]]) });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('.saveList')).toBeTruthy();
+    expect(container.contains(document.activeElement)).toBe(true);
+  });
+
   it('renders semantic icon buttons and dispatches download/remove actions', async () => {
     const files = new Map([['hero.sv', new Uint8Array([1])]]);
     const fsApi = {

@@ -3,6 +3,10 @@ import IdbKvStore from 'idb-kv-store';
 export const STORAGE_UNAVAILABLE_MESSAGE = 'Save storage is unavailable in this browser.';
 
 const PROBE_KEY = '__opentristam_probe__';
+// Game data archives are tens of megabytes; reading them eagerly at startup
+// blocked the main thread for hundreds of milliseconds and pinned them in
+// memory just to render the start screen. They load on demand via `load()`.
+const LAZY_FILE_RE = /\.mpq$/i;
 const DOWNLOAD_REVOKE_MS = 1500;
 
 function toUint8Array(value) {
@@ -84,6 +88,8 @@ function createFallbackFs(initError) {
   return {
     initError,
     files: new Map(),
+    has: () => false,
+    load: () => Promise.resolve(undefined),
     list: () => [],
     update: () => rejectUnavailable(),
     delete: () => rejectUnavailable(),
@@ -114,8 +120,22 @@ export default async function create_fs() {
     await store.set(PROBE_KEY, new Uint8Array([1]));
     await store.remove(PROBE_KEY);
 
-    const storeJson = await store.json();
-    const files = new Map(Object.entries(storeJson).filter(([key]) => key !== PROBE_KEY));
+    const files = new Map();
+    // Keys of large files that exist in the store but are not read into memory.
+    const lazyKeys = new Set();
+    const keys = (await store.keys()).filter((key) => key !== PROBE_KEY);
+    await Promise.all(
+      keys.map(async (key) => {
+        if (LAZY_FILE_RE.test(key)) {
+          lazyKeys.add(key);
+          return;
+        }
+        const data = toUint8Array(await store.get(key));
+        if (data) {
+          files.set(key, data);
+        }
+      })
+    );
     const listeners = new Set();
 
     const notify = (change) => {
@@ -134,6 +154,9 @@ export default async function create_fs() {
       }
       if (method === 'remove') {
         files.delete(key);
+        lazyKeys.delete(key);
+      } else if (LAZY_FILE_RE.test(key) && !files.has(key)) {
+        lazyKeys.add(key);
       } else {
         const data = toUint8Array(value);
         if (data) {
@@ -150,22 +173,48 @@ export default async function create_fs() {
     return {
       initError: null,
       files,
-      list: () => Array.from(files.keys()).sort(),
+      has: (name) => {
+        const key = String(name).toLowerCase();
+        return files.has(key) || lazyKeys.has(key);
+      },
+      /**
+       * Read a file into the in-memory map (if it is not already there) and
+       * return its data, or undefined when it does not exist.
+       */
+      load: async (name) => {
+        const key = String(name).toLowerCase();
+        if (files.has(key)) {
+          return files.get(key);
+        }
+        if (!lazyKeys.has(key)) {
+          return undefined;
+        }
+        const data = toUint8Array(await store.get(key));
+        lazyKeys.delete(key);
+        if (data) {
+          files.set(key, data);
+        }
+        return data || undefined;
+      },
+      list: () => Array.from(new Set([...files.keys(), ...lazyKeys])).sort(),
       update: async (name, data) => {
         const key = String(name).toLowerCase();
         await store.set(key, data);
         files.set(key, data);
+        lazyKeys.delete(key);
         notify({ source: 'local', method: 'set', key });
       },
       delete: async (name) => {
         const key = String(name).toLowerCase();
         await store.remove(key);
         files.delete(key);
+        lazyKeys.delete(key);
         notify({ source: 'local', method: 'remove', key });
       },
       clear: async () => {
         await store.clear();
         files.clear();
+        lazyKeys.clear();
         notify({ source: 'local', method: 'clear' });
       },
       download: (name) => downloadFile(store, name),

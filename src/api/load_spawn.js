@@ -6,6 +6,14 @@ export { SpawnSizes };
 
 export default async function load_spawn(api, fs) {
   let file = fs.files.get('spawn.mpq');
+  if (!file && typeof fs.load === 'function') {
+    // Cached archives stay in IndexedDB until a launch needs them.
+    try {
+      file = await fs.load('spawn.mpq');
+    } catch (_e) {
+      file = null;
+    }
+  }
   if (file && !SpawnSizes.includes(file.byteLength)) {
     fs.files.delete('spawn.mpq');
     try {

@@ -1,10 +1,8 @@
 import React from 'react';
 import './App.scss';
 import classNames from 'classnames';
-import ReactGA from 'react-ga';
 
 import create_fs from './fs';
-import { SpawnSizes } from './api/load_spawn';
 import { getDropFile, isDropFile } from './input/fileDrop';
 import createFileDropTarget from './input/fileDropTarget';
 import createEventListeners from './input/eventListeners';
@@ -39,16 +37,17 @@ import {
   handleGameError,
   handleGameExit,
   handleProgress,
+  preloadGameRuntime,
   resetToStart,
   setCurrentSave,
   setCursorPos,
 } from './engine/session';
 import SessionContext from './engine/sessionContext';
+import { applyUpdate } from './serviceWorker';
 
 import ErrorOverlay from './ui/ErrorOverlay';
 import LoadingScreen from './ui/LoadingScreen';
 import StartScreen from './ui/StartScreen';
-import SaveManager from './ui/SaveManager';
 import MultiplayerStatusBanner from './ui/MultiplayerStatusBanner';
 import {
   DEFAULT_TOUCH_LAYOUT_PRESET,
@@ -58,15 +57,6 @@ import {
   loadPreferences,
   savePreferences,
 } from './preferences';
-
-import Peer from 'peerjs';
-
-window.Peer = Peer;
-
-if (process.env.NODE_ENV === 'production') {
-  ReactGA.initialize('UA-43123589-6');
-  ReactGA.pageview('/');
-}
 
 let keyboardRule = null;
 let keyboardRuleResolved = false;
@@ -90,6 +80,7 @@ const scheduleIdle =
     : (cb) => setTimeout(cb, 0);
 
 const CompressMpq = React.lazy(() => import('./mpqcmp'));
+const SaveManager = React.lazy(() => import('./ui/SaveManager'));
 
 class App extends React.Component {
   files = new Map();
@@ -290,15 +281,26 @@ class App extends React.Component {
           }
         });
       }
-      const spawn = fs.files.get('spawn.mpq');
-      if (spawn && SpawnSizes.includes(spawn.byteLength)) {
+      // Presence check only; load_spawn validates the size before launching.
+      if (typeof fs.has === 'function' ? fs.has('spawn.mpq') : fs.files.has('spawn.mpq')) {
         this.setState({ has_spawn: true });
       }
       this.refreshSaves();
     });
+
+    // Fetch the game runtime chunk once the start screen is up, so pressing
+    // Play doesn't wait on it. Failures are retried on launch.
+    this.preloadTimer = setTimeout(() => {
+      this.preloadTimer = null;
+      scheduleIdle(() => preloadGameRuntime().catch(() => {}));
+    }, 1500);
   }
 
   componentWillUnmount() {
+    if (this.preloadTimer) {
+      clearTimeout(this.preloadTimer);
+      this.preloadTimer = null;
+    }
     if (this.startupNoticeTimer) {
       clearTimeout(this.startupNoticeTimer);
       this.startupNoticeTimer = null;
@@ -557,9 +559,7 @@ class App extends React.Component {
 
   applySwUpdate = () => {
     const { updateRegistration } = this.state;
-    import('./serviceWorker').then(({ applyUpdate }) => {
-      applyUpdate(updateRegistration);
-    });
+    applyUpdate(updateRegistration);
   };
 
   flushPendingCompressedFile = () => {
@@ -1018,7 +1018,11 @@ class App extends React.Component {
   renderUi() {
     const { started, loading, error, show_saves, compress } = this.state;
     if (show_saves) {
-      return <SaveManager />;
+      return (
+        <React.Suspense fallback={<LoadingScreen progress={{ text: 'Loading saves...' }} />}>
+          <SaveManager />
+        </React.Suspense>
+      );
     } else if (compress) {
       return (
         <React.Suspense

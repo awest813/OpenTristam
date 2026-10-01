@@ -1,9 +1,37 @@
-import load_game from '../api/loader';
-import { mapStackTrace } from 'sourcemapped-stacktrace';
-import ReactGA from 'react-ga';
+import init_sound from '../api/sound';
 import getPlayerName from '../api/savefile';
 
 const ERROR_SETUP_TIMEOUT_MS = 2000;
+
+let gameRuntimePromise = null;
+
+/**
+ * Load the game runtime (worker bridge, transports, PeerJS) on demand. It is
+ * kept out of the initial bundle so the start screen paints sooner; App calls
+ * this when idle so a Play click rarely waits on the network.
+ *
+ * @returns {Promise<Function>} Resolves to `load_game`.
+ */
+export function preloadGameRuntime() {
+  if (!gameRuntimePromise) {
+    gameRuntimePromise = import('../api/loader').then(
+      (module) => module.default,
+      (e) => {
+        // Allow a retry (e.g. after a flaky network) on the next launch.
+        gameRuntimePromise = null;
+        throw e;
+      }
+    );
+  }
+  return gameRuntimePromise;
+}
+
+function mapStackTrace(stack, callback) {
+  // Only needed when reporting a crash, so it is not part of the main bundle.
+  import('sourcemapped-stacktrace')
+    .then((module) => module.mapStackTrace(stack, callback))
+    .catch(() => callback([stack]));
+}
 
 /**
  * Surface a transient startup notice through the app, if it exposes one.
@@ -159,23 +187,22 @@ export function startGame(app, file) {
   app.setState({ dropping: 0 });
 
   const retail = !!(file && !/^spawn\.mpq$/i.test(file.name));
-  if (process.env.NODE_ENV === 'production') {
-    ReactGA.event({
-      category: 'Game',
-      action: retail ? 'Start Retail' : 'Start Shareware',
-    });
-  }
 
   app.setState({ loading: true, retail, error: null });
 
-  load_game(app, file, !retail).then(
-    (game) => {
-      app.game = game;
-      app.runtimeListeners.attach();
-      app.setState({ started: true, loading: false });
-    },
-    (e) => handleGameError(app, e.message, e.stack)
-  );
+  // Create the AudioContext synchronously, while still inside the click/drop
+  // gesture; Safari will not start audio created after an async gap.
+  const audio = init_sound();
+  preloadGameRuntime()
+    .then((load_game) => load_game(app, file, !retail, audio))
+    .then(
+      (game) => {
+        app.game = game;
+        app.runtimeListeners.attach();
+        app.setState({ started: true, loading: false });
+      },
+      (e) => handleGameError(app, e.message, e.stack)
+    );
 }
 
 /**

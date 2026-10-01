@@ -15,7 +15,8 @@ function readBudget(name, fallbackBytes) {
 }
 
 const budgets = {
-  mainJsGzip: readBudget('BUNDLE_BUDGET_MAIN_JS_GZIP_BYTES', 190 * 1024),
+  // The main chunk gates first paint; keep heavy runtime code in lazy chunks.
+  mainJsGzip: readBudget('BUNDLE_BUDGET_MAIN_JS_GZIP_BYTES', 90 * 1024),
   workerJsGzip: readBudget('BUNDLE_BUDGET_WORKER_JS_GZIP_BYTES', 40 * 1024),
   totalJsGzip: readBudget('BUNDLE_BUDGET_TOTAL_JS_GZIP_BYTES', 220 * 1024),
   totalCssGzip: readBudget('BUNDLE_BUDGET_TOTAL_CSS_GZIP_BYTES', 12 * 1024),
@@ -27,7 +28,7 @@ function formatBytes(bytes) {
 }
 
 async function collectAssets() {
-  const entries = await readdir(assetsDir, {withFileTypes: true});
+  const entries = await readdir(assetsDir, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
     if (!entry.isFile()) continue;
@@ -37,7 +38,7 @@ async function collectAssets() {
       name: entry.name,
       absolutePath,
       rawBytes: content.byteLength,
-      gzipBytes: zlib.gzipSync(content, {level: 9}).byteLength,
+      gzipBytes: zlib.gzipSync(content, { level: 9 }).byteLength,
     });
   }
   return files;
@@ -49,7 +50,9 @@ function sumBytes(files) {
 
 function logMetric(title, value, limit, status) {
   const badge = status ? 'PASS' : 'FAIL';
-  console.log(`${badge.padEnd(5)} ${title.padEnd(24)} ${formatBytes(value).padStart(12)} / ${formatBytes(limit)}`);
+  console.log(
+    `${badge.padEnd(5)} ${title.padEnd(24)} ${formatBytes(value).padStart(12)} / ${formatBytes(limit)}`
+  );
 }
 
 async function main() {
@@ -63,16 +66,20 @@ async function main() {
     process.exit(1);
   }
 
-  const jsFiles = assetsStats.filter(file => file.name.endsWith('.js'));
-  const cssFiles = assetsStats.filter(file => file.name.endsWith('.css'));
-  const wasmFiles = assetsStats.filter(file => file.name.endsWith('.wasm'));
-  const mainJs = jsFiles.find(file => /^main-.*\.js$/.test(file.name));
-  // Worker chunks: any JS file that is not the main entry chunk.
-  // Vite emits workers with names like `<module>-<hash>.js` (no leading `main-`).
-  const workerJs = jsFiles.filter(file => !/^main-.*\.js$/.test(file.name));
+  const jsFiles = assetsStats.filter((file) => file.name.endsWith('.js'));
+  const cssFiles = assetsStats.filter((file) => file.name.endsWith('.css'));
+  const wasmFiles = assetsStats.filter((file) => file.name.endsWith('.wasm'));
+  const mainJs = jsFiles.find((file) => /^main-.*\.js$/.test(file.name));
+  // Worker bundles are emitted from `*.worker.js` sources as `<name>.worker-<hash>.js`.
+  // Everything else besides the entry is a lazily loaded chunk (dynamic import),
+  // which only counts toward the total JS budget.
+  const workerJs = jsFiles.filter((file) => /\.worker-[^.]+\.js$/.test(file.name));
+  const lazyJs = jsFiles.filter((file) => file !== mainJs && !workerJs.includes(file));
 
   if (!mainJs) {
-    console.error('[bundle-budget] Could not locate the main JS chunk (expected name pattern: main-*.js).');
+    console.error(
+      '[bundle-budget] Could not locate the main JS chunk (expected name pattern: main-*.js).'
+    );
     process.exit(1);
   }
 
@@ -82,11 +89,15 @@ async function main() {
       value: mainJs.gzipBytes,
       limit: budgets.mainJsGzip,
     },
-    ...(workerJs.length > 0 ? [{
-      title: 'Worker JS total (gzip)',
-      value: sumBytes(workerJs),
-      limit: budgets.workerJsGzip,
-    }] : []),
+    ...(workerJs.length > 0
+      ? [
+          {
+            title: 'Worker JS total (gzip)',
+            value: sumBytes(workerJs),
+            limit: budgets.workerJsGzip,
+          },
+        ]
+      : []),
     {
       title: 'Total JS (gzip)',
       value: sumBytes(jsFiles),
@@ -118,7 +129,16 @@ async function main() {
       console.log(`       ${f.name} (${formatBytes(f.gzipBytes)} gzip)`);
     }
   }
-  console.log('\n[bundle-budget] Main chunk:', `${mainJs.name} (${formatBytes(mainJs.gzipBytes)} gzip)`);
+  if (lazyJs.length > 0) {
+    console.log('\n[bundle-budget] Lazy chunks:');
+    for (const f of lazyJs) {
+      console.log(`       ${f.name} (${formatBytes(f.gzipBytes)} gzip)`);
+    }
+  }
+  console.log(
+    '\n[bundle-budget] Main chunk:',
+    `${mainJs.name} (${formatBytes(mainJs.gzipBytes)} gzip)`
+  );
   if (hasFailure) {
     console.error('\n[bundle-budget] One or more budgets were exceeded.');
     process.exit(1);

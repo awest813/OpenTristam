@@ -10,7 +10,9 @@ const PLAYER_CLASSES = ['Warrior', 'Rogue', 'Sorcerer'];
 export default class SaveManager extends React.Component {
   static contextType = SessionContext;
 
-  state = { saves: {}, pendingDelete: null, busy: false };
+  // `loaded` gates the empty state: rendering "No save files" before the list
+  // arrives would focus its button, then unmount it and drop focus to <body>.
+  state = { saves: {}, loaded: false, pendingDelete: null, busy: false };
   lastSavesVersion = null;
   uploadInputRef = React.createRef();
   confirmButtonRef = React.createRef();
@@ -65,18 +67,22 @@ export default class SaveManager extends React.Component {
   async loadSaves() {
     const { fs } = this.getSessionValues();
     if (!fs) {
-      this.setState({ saves: {} });
+      this.setState({ saves: {}, loaded: true });
       return;
     }
 
-    const fsApi = await fs;
     const saves = {};
-    for (const name of fsApi.files.keys()) {
-      if (/\.sv$/i.test(name)) {
-        saves[name] = getPlayerName(fsApi.files.get(name), name);
+    try {
+      const fsApi = await fs;
+      for (const name of fsApi.files.keys()) {
+        if (/\.sv$/i.test(name)) {
+          saves[name] = getPlayerName(fsApi.files.get(name), name);
+        }
       }
+    } catch (_e) {
+      // Storage unavailable: fall through to the empty state.
     }
-    this.setState({ saves });
+    this.setState({ saves, loaded: true });
   }
 
   requestRemoveSave = (name) => {
@@ -191,7 +197,7 @@ export default class SaveManager extends React.Component {
 
   render() {
     const { onClose } = this.getSessionValues();
-    const { saves, pendingDelete, busy } = this.state;
+    const { saves, loaded, pendingDelete, busy } = this.state;
     const saveEntries = Object.entries(saves);
     return (
       <DialogFrame
@@ -207,7 +213,7 @@ export default class SaveManager extends React.Component {
         <p className="saveManagerIntro">
           Keep a backup of your browser saves or import an existing <strong>.sv</strong> file.
         </p>
-        {saveEntries.length === 0 ? (
+        {!loaded ? null : saveEntries.length === 0 ? (
           <div className="savesEmpty">
             <p className="savesEmptyTitle">No save files found.</p>
             <p className="savesEmptyBody">

@@ -33,6 +33,14 @@ All notable changes to this project will be documented in this file.
 - Touch pad labels use Move / Right-click / Shift / F5–F8 names.
 - Start dialogs size against the viewport (up to 600px) so Shareware / Retail cards sit side by side on desktop and landscape phones; short screens get a compact header.
 - Error overlay focuses its primary recovery action first.
+- Start-screen performance: the main bundle drops from 144 KB to 68 KB gzip. The game runtime (worker bridge, PeerJS/WebRTC, axios), the Save Manager (with FontAwesome) and `sourcemapped-stacktrace` now load on demand, and the runtime is prefetched while the start screen is idle. On a throttled mid-range phone profile the start screen appears ~0.5 s sooner (1.6 s → 1.15 s) with about half the blocking time.
+- Cached MPQ archives stay in IndexedDB until a launch needs them instead of being read into memory on every page load (a 50 MB `spawn.mpq` cost an 80–300 ms main-thread stall and ~50 MB of heap at startup). Retail launches also no longer copy a cached shareware archive into the worker.
+- The service worker caches the content-hashed engine `.wasm` files, so repeat launches skip a ~1.5 MB download and offline play works after the first game.
+- Bundle budget check classifies worker vs lazy chunks correctly and lowers the main-chunk budget to 90 KiB.
+
+### Removed
+
+- Google Universal Analytics (`react-ga`): the property stopped processing data in 2023, so it only cost a script download and requests.
 
 ### Fixed
 
@@ -41,6 +49,7 @@ All notable changes to this project will be documented in this file.
 - Bold copy (`<strong>`) rendered as plain text because of the CSS reset.
 - Initial dialog focus no longer scrolls the title out of view on short screens.
 - Storage warning banner can be dismissed instead of permanently covering the start screen.
+- Save Manager briefly rendered its empty state before the list loaded, dropping keyboard focus to the page so Escape stopped closing it.
 - Contrast and touch-target fixes: card labels, loading text, install "Not now", toast dismiss buttons, and onboarding "Got it" links; links follow high-contrast mode.
 - High-contrast coverage for install prompt and settings disclosure controls.
 - Storage fallback mutators (`update`, `delete`, `clear`) now reject instead of silently succeeding when IndexedDB is unavailable.
