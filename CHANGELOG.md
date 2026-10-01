@@ -31,8 +31,17 @@ All notable changes to this project will be documented in this file.
 - Fullscreen-on-touch is requested once per session and failures are ignored.
 - Belt slot canvases reuse a single child instead of stacking on remount.
 - Touch pad labels use Move / Right-click / Shift / F5–F8 names.
+- Start dialogs size against the viewport (up to 600px) so Shareware / Retail cards sit side by side on desktop and landscape phones; short screens get a compact header.
+- Error overlay focuses its primary recovery action first.
+
 ### Fixed
 
+- Browser saves never persisted: Vite stubbed out the Node `events` module `idb-kv-store` depends on, so storage always fell back to read-only and showed the storage warning. The build now uses the package's self-contained browser bundle.
+- Error overlay **Back to start** / **Reload page** rendered as unstyled browser buttons.
+- Bold copy (`<strong>`) rendered as plain text because of the CSS reset.
+- Initial dialog focus no longer scrolls the title out of view on short screens.
+- Storage warning banner can be dismissed instead of permanently covering the start screen.
+- Contrast and touch-target fixes: card labels, loading text, install "Not now", toast dismiss buttons, and onboarding "Got it" links; links follow high-contrast mode.
 - High-contrast coverage for install prompt and settings disclosure controls.
 - Storage fallback mutators (`update`, `delete`, `clear`) now reject instead of silently succeeding when IndexedDB is unavailable.
 - Soft recovery and hard error paths dispose the game session cleanly: boot/runtime errors clear loading state, detach stale listeners, and `createGame` exposes `dispose` so audio/websocket/touch teardown is not skipped.

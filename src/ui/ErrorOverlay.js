@@ -50,6 +50,7 @@ export default function ErrorOverlay(props) {
       role="alertdialog"
       ariaLabel="Game error details"
       onEscape={onReturnToStart}
+      initialFocusSelector=".errorPrimaryActions .startButton--primary"
     >
       <p className="header">{heading}</p>
       <p className="errorLead">{lead}</p>

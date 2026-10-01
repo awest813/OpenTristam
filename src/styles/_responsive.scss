@@ -68,3 +68,60 @@
     letter-spacing: 0.1em;
   }
 }
+
+/* Short viewports (landscape phones): tighten the header and spacing so the
+   two start paths fit without scrolling past a tall title block. */
+@media (max-height: 500px) {
+  .App .start,
+  .App .error {
+    max-height: 94vh;
+    padding: 12px 16px;
+  }
+
+  .App .start {
+    .startHeader {
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+    }
+    .startTitle {
+      gap: 8px;
+      margin-bottom: 0;
+    }
+    .startTitleText {
+      font-size: 1.6em;
+    }
+    .startTitleDeco {
+      font-size: 1em;
+    }
+    .startBrand {
+      font-size: 0.8em;
+    }
+    .startMeta {
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .startQuickPaths {
+      margin: 4px 0 10px;
+      gap: 10px;
+    }
+    .startPathCard {
+      padding: 10px 12px;
+    }
+    .startPathCard .startPathCardTitle {
+      margin-bottom: 4px;
+      font-size: 1.1em;
+    }
+    .startPathCard .startPathCardDesc {
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .startPathCard .startPathCardCta {
+      font-size: 1.15em;
+    }
+    .saveManagerActions,
+    .dialogActions {
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+  }
+}

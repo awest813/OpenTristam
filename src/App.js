@@ -105,6 +105,7 @@ class App extends React.Component {
     updateRegistration: null,
     storageError: null,
     storageRetrying: false,
+    storageErrorDismissed: false,
     // Game session state (set by engine/session helpers)
     progress: null,
     error: null,
@@ -525,6 +526,7 @@ class App extends React.Component {
   };
 
   dismissOfflineReady = () => this.setState({ offlineReady: false });
+  dismissStorageError = () => this.setState({ storageErrorDismissed: true });
   dismissUpdateBanner = () => this.setState({ updateDismissed: true });
 
   // ─── Startup notices ────────────────────────────────────────────────────────
@@ -622,6 +624,7 @@ class App extends React.Component {
         }
       }
       this.setState({
+        storageErrorDismissed: false,
         storageError: fs.initError
           ? 'Save storage isn’t available in this browser — progress won’t be kept between sessions. You can still play.'
           : null,
@@ -638,6 +641,7 @@ class App extends React.Component {
     } catch (e) {
       this.setState({
         storageRetrying: false,
+        storageErrorDismissed: false,
         storageError:
           e.message ||
           'Save storage isn’t available in this browser — progress won’t be kept between sessions. You can still play.',
@@ -647,6 +651,7 @@ class App extends React.Component {
 
   onStorageFailure = () => {
     this.setState({
+      storageErrorDismissed: false,
       storageError:
         'Couldn’t write to browser storage — progress may not be kept. Check available space or try another browser.',
     });
@@ -1094,17 +1099,27 @@ class App extends React.Component {
               </button>
             </div>
           )}
-          {this.state.storageError && (
+          {this.state.storageError && !this.state.storageErrorDismissed && (
             <div className="storageBanner" role="alert" aria-live="assertive" aria-atomic="true">
               <span>{this.state.storageError}</span>
-              <button
-                type="button"
-                className="storageBanner-retry"
-                onClick={this.retryStorage}
-                disabled={this.state.storageRetrying}
-              >
-                {this.state.storageRetrying ? 'Retrying…' : 'Retry storage'}
-              </button>
+              <div className="storageBanner-actions">
+                <button
+                  type="button"
+                  className="storageBanner-retry"
+                  onClick={this.retryStorage}
+                  disabled={this.state.storageRetrying}
+                >
+                  {this.state.storageRetrying ? 'Retrying…' : 'Retry storage'}
+                </button>
+                <button
+                  type="button"
+                  className="storageBanner-dismiss"
+                  onClick={this.dismissStorageError}
+                  aria-label="Dismiss storage warning"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
           <MultiplayerStatusBanner />

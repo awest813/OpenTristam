@@ -24,7 +24,7 @@ function jsInJsxPlugin() {
         sourcemap: true,
         sourcefile: id,
       });
-      return {code: result.code, map: result.map};
+      return { code: result.code, map: result.map };
     },
   };
 }
@@ -53,11 +53,17 @@ export default defineConfig({
   // GitHub Pages serves from /OpenTristam/
   base: '/OpenTristam/',
 
-  plugins: [
-    jsInJsxPlugin(),
-    react(),
-    jsccPlugin(),
-  ],
+  plugins: [jsInJsxPlugin(), react(), jsccPlugin()],
+
+  resolve: {
+    alias: [
+      // idb-kv-store's main entry requires Node's `events` module, which Vite
+      // externalizes for the browser — `new IdbKvStore()` then throws and save
+      // storage silently falls back to read-only. The package ships a
+      // browserify bundle with its own EventEmitter; use that instead.
+      { find: /^idb-kv-store$/, replacement: 'idb-kv-store/idbkvstore.min.js' },
+    ],
+  },
 
   define: {
     // Replace process.env usages injected by legacy CRA patterns.
