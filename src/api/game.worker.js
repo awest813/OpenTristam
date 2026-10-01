@@ -2,7 +2,7 @@ import DiabloBinary from './Diablo.wasm?url';
 import DiabloModule from './Diablo.jscc';
 import SpawnBinary from './DiabloSpawn.wasm?url';
 import SpawnModule from './DiabloSpawn.jscc';
-import axios from 'axios';
+import { downloadArrayBuffer } from './download';
 
 import websocket_open from './websocket';
 import { WorkerToMain, MainToWorker } from './workerMessages';
@@ -377,12 +377,10 @@ const readFile = (file, progressCb) =>
   });
 
 async function initWasm(spawn, progressCb) {
-  const binary = await axios.request({
-    url: spawn ? SpawnBinary : DiabloBinary,
-    responseType: 'arraybuffer',
-    onDownloadProgress: progressCb,
+  const binary = await downloadArrayBuffer(spawn ? SpawnBinary : DiabloBinary, {
+    onProgress: progressCb,
   });
-  const result = await (spawn ? SpawnModule : DiabloModule)({ wasmBinary: binary.data }).ready;
+  const result = await (spawn ? SpawnModule : DiabloModule)({ wasmBinary: binary }).ready;
   progressCb({ loaded: 2000000 });
   return result;
 }

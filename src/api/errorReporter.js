@@ -7,9 +7,12 @@ export const ExternalLink = ({ children, ...props }) => (
 );
 
 // Low-level messages that mean "the asset download didn't make it" rather than
-// an actual game bug — axios surfaces "Network Error", fetch throws "Failed to
-// fetch"/"Load failed", and the worker's RemoteFile throws its own string.
+// an actual game bug — fetch throws "Failed to fetch"/"Load failed", older
+// XHR paths surface "Network Error", and the worker's RemoteFile throws its own
+// string. Server-side and throttling HTTP statuses are transient too; the
+// service worker also answers offline misses with a synthetic 503.
 const NETWORK_ERROR_PATTERNS = [
+  /request failed with status code (5\d\d|408|429)\b/i,
   /network error/i,
   /failed to fetch/i,
   /load failed/i,
@@ -22,6 +25,11 @@ const NETWORK_ERROR_PATTERNS = [
 
 // Known engine/loader strings that should never be shown raw to players.
 const FRIENDLY_ERROR_PATTERNS = [
+  {
+    pattern: /request failed with status code 404\b/i,
+    message:
+      'Some game data couldn’t be found on the server. Reload the page to get the latest version, then try again.',
+  },
   {
     pattern: /invalid spawn\.mpq size/i,
     message:
@@ -53,22 +61,28 @@ const FRIENDLY_ERROR_PATTERNS = [
 export function describeStartupError(rawMessage) {
   const message = typeof rawMessage === 'string' ? rawMessage : '';
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
-  const looksNetwork = offline || NETWORK_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+  const networkResult = () => ({
+    isNetwork: true,
+    // Lead line already says the download failed — keep the body as the tip.
+    message: offline
+      ? 'Reconnect to the internet, then try again.'
+      : 'Check your connection and try again. This is usually temporary.',
+  });
 
-  if (looksNetwork) {
-    return {
-      isNetwork: true,
-      // Lead line already says the download failed — keep the body as the tip.
-      message: offline
-        ? 'Reconnect to the internet, then try again.'
-        : 'Check your connection and try again. This is usually temporary.',
-    };
+  if (NETWORK_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
+    return networkResult();
   }
 
+  // Known game/data errors win over the offline hint: cached games can run
+  // offline, and reconnecting would not fix a corrupt MPQ.
   for (const entry of FRIENDLY_ERROR_PATTERNS) {
     if (entry.pattern.test(message)) {
       return { isNetwork: false, message: entry.message };
     }
+  }
+
+  if (offline) {
+    return networkResult();
   }
 
   return {

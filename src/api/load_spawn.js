@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { downloadArrayBuffer } from './download';
 
 const SpawnSizes = [50274091, 25830791];
 
@@ -24,10 +24,8 @@ export default async function load_spawn(api, fs) {
     file = null;
   }
   if (!file) {
-    const spawn = await axios.request({
-      url: process.env.PUBLIC_URL + '/spawn.mpq',
-      responseType: 'arraybuffer',
-      onDownloadProgress: (e) => {
+    const buffer = await downloadArrayBuffer(process.env.PUBLIC_URL + '/spawn.mpq', {
+      onProgress: (e) => {
         if (api.onProgress) {
           api.onProgress({
             text: 'Downloading...',
@@ -36,14 +34,11 @@ export default async function load_spawn(api, fs) {
           });
         }
       },
-      headers: {
-        'Cache-Control': 'max-age=31536000',
-      },
     });
-    if (!SpawnSizes.includes(spawn.data.byteLength)) {
+    if (!SpawnSizes.includes(buffer.byteLength)) {
       throw Error('Invalid spawn.mpq size. Try clearing cache and refreshing the page.');
     }
-    const data = new Uint8Array(spawn.data);
+    const data = new Uint8Array(buffer);
     // Keep an in-memory copy for this session even if persistence fails.
     fs.files.set('spawn.mpq', data);
     try {

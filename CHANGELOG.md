@@ -37,10 +37,13 @@ All notable changes to this project will be documented in this file.
 - Cached MPQ archives stay in IndexedDB until a launch needs them instead of being read into memory on every page load (a 50 MB `spawn.mpq` cost an 80–300 ms main-thread stall and ~50 MB of heap at startup). Retail launches also no longer copy a cached shareware archive into the worker.
 - The service worker caches the content-hashed engine `.wasm` files, so repeat launches skip a ~1.5 MB download and offline play works after the first game.
 - Bundle budget check classifies worker vs lazy chunks correctly and lowers the main-chunk budget to 90 KiB.
+- Downloads (shareware data, engine wasm, compressor assets) use a small streaming `fetch` helper instead of axios, cutting another ~11 KiB gzip of JS (the game worker shrinks from 71 KB to 55 KB) and writing large downloads straight into a preallocated buffer.
+- `.prettierignore` keeps the pre-commit hook from reformatting lockfiles.
 
 ### Removed
 
 - Google Universal Analytics (`react-ga`): the property stopped processing data in 2023, so it only cost a script download and requests.
+- `axios` (0.21.x, with published security advisories) — replaced by `fetch`.
 
 ### Fixed
 
@@ -49,6 +52,7 @@ All notable changes to this project will be documented in this file.
 - Bold copy (`<strong>`) rendered as plain text because of the CSS reset.
 - Initial dialog focus no longer scrolls the title out of view on short screens.
 - Storage warning banner can be dismissed instead of permanently covering the start screen.
+- Errors while offline were always reported as "Connection problem", even for a corrupt MPQ in a game that can now run offline; known game errors now take precedence. Server-side HTTP failures (5xx/408/429, including the service worker's offline 503) count as connection problems, and a 404 gets its own message.
 - Save Manager briefly rendered its empty state before the list loaded, dropping keyboard focus to the page so Escape stopped closing it.
 - Contrast and touch-target fixes: card labels, loading text, install "Not now", toast dismiss buttons, and onboarding "Got it" links; links follow high-contrast mode.
 - High-contrast coverage for install prompt and settings disclosure controls.

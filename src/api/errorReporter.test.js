@@ -81,8 +81,17 @@ describe('describeStartupError', () => {
     'net::ERR_CONNECTION_RESET',
     'Request timed out',
     'Failed to load remote file',
+    'Request failed with status code 503',
+    'Request failed with status code 502',
+    'Request failed with status code 429',
   ])('treats %s as a network failure', (raw) => {
     expect(describeStartupError(raw).isNetwork).toBe(true);
+  });
+
+  it('explains a missing asset (404) without calling it a connection problem', () => {
+    const result = describeStartupError('Request failed with status code 404');
+    expect(result.isNetwork).toBe(false);
+    expect(result.message).toMatch(/couldn’t be found/i);
   });
 
   it('treats a genuine game error as non-network and preserves unknown messages', () => {
@@ -111,5 +120,12 @@ describe('describeStartupError', () => {
     const result = describeStartupError('Some unrelated message');
     expect(result.isNetwork).toBe(true);
     expect(result.message).toMatch(/reconnect/i);
+  });
+
+  it('keeps known game errors when offline, since cached games can run offline', () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    const result = describeStartupError('invalid MPQ file');
+    expect(result.isNetwork).toBe(false);
+    expect(result.message).toMatch(/valid Diablo MPQ/i);
   });
 });
