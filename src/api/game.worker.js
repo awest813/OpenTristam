@@ -3,6 +3,7 @@ import DiabloModule from './Diablo.jscc';
 import SpawnBinary from './DiabloSpawn.wasm?url';
 import SpawnModule from './DiabloSpawn.jscc';
 import { downloadArrayBuffer } from './download';
+import readFile from './readFile';
 
 import websocket_open from './websocket';
 import { WorkerToMain, MainToWorker } from './workerMessages';
@@ -364,23 +365,6 @@ function call_api(func, ...params) {
 function progress(text, loaded, total) {
   worker.postMessage({ action: WorkerToMain.PROGRESS, text, loaded, total });
 }
-
-const readFile = (file, progressCb) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (progressCb) {
-        progressCb({ loaded: file.size });
-      }
-      resolve(reader.result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.onabort = () => reject(new Error('Reading the MPQ file was aborted.'));
-    if (progressCb) {
-      reader.addEventListener('progress', progressCb);
-    }
-    reader.readAsArrayBuffer(file);
-  });
 
 async function initWasm(spawn, progressCb) {
   const binary = await downloadArrayBuffer(spawn ? SpawnBinary : DiabloBinary, {

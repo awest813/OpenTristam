@@ -46,10 +46,11 @@ describe('load_spawn', () => {
 
     await load_spawn({ onProgress }, fs);
 
+    // Unknown size (compressed response) falls back to the bundled archive's size.
     expect(onProgress).toHaveBeenCalledWith({
       text: 'Downloading...',
       loaded: 10,
-      total: SpawnSizes[1],
+      total: SpawnSizes[2],
     });
     expect(fs.files.get('spawn.mpq').byteLength).toBe(SpawnSizes[1]);
     expect(fs.update).toHaveBeenCalledWith('spawn.mpq', expect.any(Uint8Array));
@@ -66,7 +67,9 @@ describe('load_spawn', () => {
   });
 
   it('reports a missing archive (404) distinctly', async () => {
-    downloadArrayBuffer.mockRejectedValue(new Error('Request failed with status code 404'));
+    downloadArrayBuffer.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 404'), { status: 404 })
+    );
     await expect(load_spawn({}, makeFs())).rejects.toThrow(SPAWN_MISSING_MESSAGE);
   });
 

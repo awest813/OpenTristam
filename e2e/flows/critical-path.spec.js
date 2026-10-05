@@ -115,3 +115,21 @@ test('shareware boots into the game and caches its data', async ({ page }) => {
   );
   expect(cached).toBe(true);
 });
+
+test.describe('lazy screen failure', () => {
+  // The service worker would fetch the chunk itself, bypassing page.route.
+  test.use({ serviceWorkers: 'block' });
+
+  test('a lazy screen that fails to load does not blank the app', async ({ page }) => {
+    await page.goto(APP);
+    await seedSave(page);
+    await page.reload();
+    // Simulate offline or a redeploy that removed the old hashed chunk.
+    await page.route('**/SaveManager-*.js', (route) => route.abort());
+
+    await page.getByRole('button', { name: 'Manage Saves' }).click();
+    await expect(page.getByRole('alertdialog')).toContainText('Couldn’t open this screen');
+    await page.getByRole('button', { name: 'Back' }).click();
+    await expect(page.getByRole('button', { name: 'Play Shareware' })).toBeVisible();
+  });
+});

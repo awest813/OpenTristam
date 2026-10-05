@@ -1,8 +1,10 @@
 import { downloadArrayBuffer } from './download';
 
+// Size of the shareware archive shipped in public/spawn.mpq (DevilutionX assets).
+const BUNDLED_SPAWN_SIZE = 25448219;
 // Accepted shareware archives: the original release, diabloweb's compressed
-// build, and the DevilutionX assets copy shipped in public/spawn.mpq.
-const SpawnSizes = [50274091, 25830791, 25448219];
+// build, and the bundled copy.
+const SpawnSizes = [50274091, 25830791, BUNDLED_SPAWN_SIZE];
 
 export { SpawnSizes };
 
@@ -36,14 +38,15 @@ export default async function load_spawn(api, fs) {
             api.onProgress({
               text: 'Downloading...',
               loaded: e.loaded,
-              total: e.total || SpawnSizes[1],
+              total: e.total || BUNDLED_SPAWN_SIZE,
             });
           }
         },
       });
     } catch (e) {
-      if (/status code 404\b/.test(e && e.message)) {
-        // The host simply doesn't ship shareware data (it is not in the repo).
+      if (e && e.status === 404) {
+        // This host doesn't serve shareware data (e.g. a fork that removed
+        // public/spawn.mpq).
         throw new Error(SPAWN_MISSING_MESSAGE);
       }
       throw e;

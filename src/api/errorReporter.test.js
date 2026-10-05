@@ -91,6 +91,7 @@ describe('describeStartupError', () => {
     'Request timed out',
     'Failed to load remote file',
     'Request failed with status code 503',
+    'Network error: download ended early (10 of 20 bytes)',
     'Request failed with status code 502',
     'Request failed with status code 429',
   ])('treats %s as a network failure', (raw) => {

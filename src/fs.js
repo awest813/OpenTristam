@@ -1,4 +1,5 @@
 import IdbKvStore from 'idb-kv-store';
+import readFile from './api/readFile';
 
 export const STORAGE_UNAVAILABLE_MESSAGE = 'Save storage is unavailable in this browser.';
 
@@ -55,15 +56,6 @@ async function downloadFile(store, name) {
   }, DOWNLOAD_REVOKE_MS);
 }
 
-const readFile = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.onabort = () => reject(new Error('File read was aborted'));
-    reader.readAsArrayBuffer(file);
-  });
-
 /**
  * @param {object} store
  * @param {Map} files
@@ -85,10 +77,12 @@ async function uploadFile(store, files, file) {
 }
 
 function createFallbackFs(initError) {
+  const files = new Map();
   return {
     initError,
-    files: new Map(),
-    has: () => false,
+    // Session-only: e.g. a downloaded spawn.mpq still lives here for this visit.
+    files,
+    has: (name) => files.has(String(name).toLowerCase()),
     load: () => Promise.resolve(undefined),
     list: () => [],
     update: () => rejectUnavailable(),
@@ -123,6 +117,7 @@ export default async function create_fs() {
     const files = new Map();
     // Keys of large files that exist in the store but are not read into memory.
     const lazyKeys = new Set();
+    const pendingLoads = new Map();
     const keys = (await store.keys()).filter((key) => key !== PROBE_KEY);
     await Promise.all(
       keys.map(async (key) => {
@@ -189,12 +184,26 @@ export default async function create_fs() {
         if (!lazyKeys.has(key)) {
           return undefined;
         }
-        const data = toUint8Array(await store.get(key));
-        lazyKeys.delete(key);
-        if (data) {
-          files.set(key, data);
+        // Share one read between concurrent callers: these archives are
+        // tens of megabytes.
+        if (!pendingLoads.has(key)) {
+          pendingLoads.set(
+            key,
+            (async () => {
+              try {
+                const data = toUint8Array(await store.get(key));
+                lazyKeys.delete(key);
+                if (data) {
+                  files.set(key, data);
+                }
+                return data || undefined;
+              } finally {
+                pendingLoads.delete(key);
+              }
+            })()
+          );
         }
-        return data || undefined;
+        return pendingLoads.get(key);
       },
       list: () => Array.from(new Set([...files.keys(), ...lazyKeys])).sort(),
       update: async (name, data) => {

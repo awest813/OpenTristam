@@ -2,28 +2,12 @@ import MpqWorker from './mpqcmp.worker.js?worker';
 import MpqBinary from './MpqCmp.wasm?url';
 import ListFile from './ListFile.txt?url';
 import { downloadArrayBuffer, downloadText } from '../api/download';
+import readFile from '../api/readFile';
 
 import { decrypt, encrypt, hash, path_name } from '../api/savefile';
 
 const MpqSize = 156977;
 const ListSize = 75542;
-
-const readFile = (file, progress) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (progress) {
-        progress({ loaded: file.size });
-      }
-      resolve(reader.result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.onabort = () => reject(new Error('Reading the MPQ file was aborted.'));
-    if (progress) {
-      reader.addEventListener('progress', progress);
-    }
-    reader.readAsArrayBuffer(file);
-  });
 
 function loadFile(url, progress, responseType = 'arraybuffer') {
   const download = responseType === 'text' ? downloadText : downloadArrayBuffer;

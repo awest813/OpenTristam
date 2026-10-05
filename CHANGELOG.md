@@ -58,6 +58,9 @@ All notable changes to this project will be documented in this file.
 - The GitHub report link truncates very long stack traces so the URL stays under GitHub's limit.
 - Launching closes its AudioContext if the game runtime chunk itself fails to load, and tolerates rejections without a message.
 - Docs: README and build guide no longer claim that `DIABDAT.MPQ` is saved between visits, that `spawn.mpq` loads with no extra files or from a CDN, or that Vite sets COOP/COEP headers; the bundle budget docs cover worker/lazy chunks; the e2e command is documented.
+- If a lazily loaded screen (Save Manager, MPQ compressor) failed to download — offline, or after a redeploy removed the old chunk — React unmounted the whole app and left a blank page. An error boundary now shows "Couldn’t open this screen" with Back / Reload.
+- Downloads that end before their announced size now fail as a connection problem instead of handing a truncated file (e.g. half the engine wasm) to the game; HTTP errors carry their status code.
+- Game worker setup failures terminate the worker; concurrent reads of the same cached archive share one IndexedDB read; the storage bridge's transfer includes lazily loaded archives; the in-memory storage fallback reports files downloaded this session.
 - Quitting the game could lose the final save: the page reloaded while the save's IndexedDB write was still in flight. Exit now waits (up to 5 s) for pending writes.
 - Mouse clicks on in-game banners and notices (e.g. multiplayer "Dismiss") also clicked the game world underneath; they now only operate the button. Releases still reach the game so drags can't stick.
 - A failed launch (download error, storage failure) leaked an AudioContext on every retry; failures now close it, and worker setup errors tear down the partially created worker.

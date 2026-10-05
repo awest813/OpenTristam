@@ -48,6 +48,12 @@ async function do_load_game(api, audio, mpq, spawn) {
     };
     try {
       const worker = new GameWorker();
+      // Until the full dispose() exists, a setup failure must still stop the
+      // worker so retries don't accumulate running workers.
+      cleanup = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+        worker.terminate();
+      };
       const diagnostics = createMultiplayerDiagnostics({
         onEvent: (event) => {
           if (api.onMultiplayerEvent) {

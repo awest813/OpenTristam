@@ -1,9 +1,7 @@
-import { isUiChromeTouchTarget } from './touchControls';
-
 // Shell UI (banners, notices, their buttons) sits on top of the canvas. Clicks
 // there must not also reach the game world, and must keep their default
 // behaviour (focus, activation).
-const isUiChromeTarget = isUiChromeTouchTarget;
+import { isUiChromeTouchTarget as isUiChromeTarget } from './touchControls';
 
 // ⚡ Reusable position object — avoids allocating a new {x, y} on every mouse
 // or touch event. Callers always immediately destructure the return value so

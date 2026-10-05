@@ -69,6 +69,13 @@ describe('create_fs — successful IndexedDB init', () => {
     expect(fs.has('spawn.mpq')).toBe(true);
   });
 
+  it('load() shares one storage read between concurrent callers', async () => {
+    const fs = await create_fs();
+    const [a, b] = await Promise.all([fs.load('spawn.mpq'), fs.load('spawn.mpq')]);
+    expect(a).toBe(b);
+    expect(mockStore.get.mock.calls.filter(([key]) => key === 'spawn.mpq')).toHaveLength(1);
+  });
+
   it('load() resolves undefined for a missing file', async () => {
     const fs = await create_fs();
     await expect(fs.load('diabdat.mpq')).resolves.toBeUndefined();
@@ -215,6 +222,13 @@ describe('create_fs — IndexedDB init failure', () => {
       remove: jest.fn(() => Promise.reject(new Error('IDB unavailable'))),
       on: jest.fn(),
     };
+  });
+
+  it('has() reports files kept in memory for this session', async () => {
+    const fs = await create_fs();
+    expect(fs.has('spawn.mpq')).toBe(false);
+    fs.files.set('spawn.mpq', new Uint8Array([1]));
+    expect(fs.has('SPAWN.MPQ')).toBe(true);
   });
 
   it('returns an initError on failure', async () => {

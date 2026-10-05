@@ -55,8 +55,15 @@ async function readBody(response, onProgress) {
     }
   }
 
+  if (total && loaded < total) {
+    // The connection closed early. Surface it as a network failure rather than
+    // handing a truncated file (e.g. half a .wasm) to the caller.
+    throw new Error(`Network error: download ended early (${loaded} of ${total} bytes)`);
+  }
   if (target) {
-    return loaded === target.byteLength ? target.buffer : target.slice(0, loaded).buffer;
+    // Exactly `total` bytes were written (shorter throws above, longer
+    // switched to chunk collection).
+    return target.buffer;
   }
   const result = new Uint8Array(loaded);
   let offset = 0;
@@ -78,7 +85,9 @@ async function readBody(response, onProgress) {
 export async function downloadArrayBuffer(url, { onProgress } = {}) {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Request failed with status code ${response.status}`);
+    const error = new Error(`Request failed with status code ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return readBody(response, onProgress);
 }

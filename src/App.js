@@ -45,6 +45,7 @@ import {
 import SessionContext from './engine/sessionContext';
 import { applyUpdate } from './serviceWorker';
 
+import ChunkErrorBoundary from './ui/ChunkErrorBoundary';
 import ErrorOverlay from './ui/ErrorOverlay';
 import LoadingScreen from './ui/LoadingScreen';
 import StartScreen from './ui/StartScreen';
@@ -282,7 +283,7 @@ class App extends React.Component {
         });
       }
       // Presence check only; load_spawn validates the size before launching.
-      if (typeof fs.has === 'function' ? fs.has('spawn.mpq') : fs.files.has('spawn.mpq')) {
+      if (fs.has('spawn.mpq')) {
         this.setState({ has_spawn: true });
       }
       this.refreshSaves();
@@ -631,7 +632,7 @@ class App extends React.Component {
         storageRetrying: false,
         has_saves: hasSaves,
         // Storage may have been unreadable before; re-check the cached archive.
-        has_spawn: typeof fs.has === 'function' && fs.has('spawn.mpq'),
+        has_spawn: fs.has('spawn.mpq'),
         savesVersion: this.state.savesVersion + 1,
       });
       this.showStartupNotice({
@@ -1021,17 +1022,21 @@ class App extends React.Component {
     const { started, loading, error, show_saves, compress } = this.state;
     if (show_saves) {
       return (
-        <React.Suspense fallback={<LoadingScreen progress={{ text: 'Loading saves...' }} />}>
-          <SaveManager />
-        </React.Suspense>
+        <ChunkErrorBoundary onClose={this.closeSaveManager}>
+          <React.Suspense fallback={<LoadingScreen progress={{ text: 'Loading saves...' }} />}>
+            <SaveManager />
+          </React.Suspense>
+        </ChunkErrorBoundary>
       );
     } else if (compress) {
       return (
-        <React.Suspense
-          fallback={<LoadingScreen progress={{ text: 'Loading MPQ compressor...' }} />}
-        >
-          <CompressMpq onClose={this.closeCompressor} ref={this.setCompressMpqRef} />
-        </React.Suspense>
+        <ChunkErrorBoundary onClose={this.closeCompressor}>
+          <React.Suspense
+            fallback={<LoadingScreen progress={{ text: 'Loading MPQ compressor...' }} />}
+          >
+            <CompressMpq onClose={this.closeCompressor} ref={this.setCompressMpqRef} />
+          </React.Suspense>
+        </ChunkErrorBoundary>
       );
     } else if (error) {
       return <ErrorOverlay />;

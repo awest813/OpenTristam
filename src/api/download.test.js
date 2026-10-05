@@ -98,7 +98,8 @@ describe('download', () => {
         makeResponse({ chunks: [new Uint8Array([7])], headers: { 'Content-Length': 4 } })
       )
     );
-    expect(Array.from(new Uint8Array(await downloadArrayBuffer('/b')))).toEqual([7]);
+    // A connection that closes early must not hand back a truncated file.
+    await expect(downloadArrayBuffer('/b')).rejects.toThrow(/Network error: download ended early/);
   });
 
   it('falls back to arrayBuffer() when the body is not streamable', async () => {
@@ -115,9 +116,10 @@ describe('download', () => {
 
   it('rejects HTTP errors with an axios-compatible message', async () => {
     global.fetch = jest.fn(() => Promise.resolve(makeResponse({ status: 404 })));
-    await expect(downloadArrayBuffer('/missing')).rejects.toThrow(
-      'Request failed with status code 404'
-    );
+    await expect(downloadArrayBuffer('/missing')).rejects.toMatchObject({
+      message: 'Request failed with status code 404',
+      status: 404,
+    });
   });
 
   it('propagates network failures from fetch', async () => {
