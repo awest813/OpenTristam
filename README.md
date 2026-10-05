@@ -39,15 +39,15 @@ At runtime:
 
 ## Features
 
-| Feature                | Details                                                         |
-| ---------------------- | --------------------------------------------------------------- |
-| **Engine parity**      | Diablo 1 core engine running in-browser via WASM                |
-| **Shareware + retail** | Works with `spawn.mpq` (free) and `DIABDAT.MPQ` (retail)        |
-| **Multiplayer**        | Peer-to-peer via WebRTC with WebSocket relay fallback           |
-| **Cross-device input** | Keyboard/mouse and touch controls with layout presets           |
-| **Persistent saves**   | Import, export, and delete saves entirely within the browser    |
-| **Accessibility**      | Keyboard-navigable overlays, ARIA labels, high-contrast UI mode |
-| **PWA-ready**          | Installable and offline-capable foundation                      |
+| Feature                | Details                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| **Engine parity**      | Diablo 1 core engine running in-browser via WASM                                     |
+| **Shareware + retail** | Works with `spawn.mpq` (free) and `DIABDAT.MPQ` (retail)                             |
+| **Multiplayer**        | Peer-to-peer via WebRTC with WebSocket relay fallback                                |
+| **Cross-device input** | Keyboard/mouse and touch controls with layout presets                                |
+| **Persistent saves**   | Import, export, and delete saves entirely within the browser                         |
+| **Accessibility**      | Keyboard-navigable overlays, ARIA labels, high-contrast UI mode                      |
+| **Installable PWA**    | Opens offline after one visit; shareware stays playable offline after the first game |
 
 ---
 

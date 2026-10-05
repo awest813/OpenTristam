@@ -1,20 +1,14 @@
-// This optional code is used to register a service worker.
-// register() is not called by default.
-
-// This lets the app load faster on subsequent visits in production, and gives
-// it offline capabilities. However, it also means that developers (and users)
-// will only see deployed updates on subsequent visits to a page, after all the
-// existing tabs open on the page have been closed, since previously cached
-// resources are updated in the background.
+// Registers public/service-worker.js in production builds. It precaches the app
+// shell and code so the app opens offline, and caches the engine and game data
+// as they are first used. New versions wait until the player confirms the
+// update banner (see applyUpdate).
 
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
-    // [::1] is the IPv6 localhost address.
-    window.location.hostname === '[::1]' ||
-    // 127.0.0.1/8 is considered localhost for IPv4.
-    window.location.hostname.match(
-      /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
-    )
+  // [::1] is the IPv6 localhost address.
+  window.location.hostname === '[::1]' ||
+  // 127.0.0.1/8 is considered localhost for IPv4.
+  window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
 );
 
 const invokeCallback = (callback, arg) => {
@@ -37,8 +31,8 @@ export async function applyUpdate(registration) {
     return;
   }
   // Listen for the new SW to become the controller, then reload.
-  await new Promise(resolve => {
-    navigator.serviceWorker.addEventListener('controllerchange', resolve, {once: true});
+  await new Promise((resolve) => {
+    navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
     waiting.postMessage('SKIP_WAITING');
   });
   window.location.reload();
@@ -65,14 +59,6 @@ export function register(config) {
       // This is running on localhost. Let's check if a service worker still exists or not.
       checkValidServiceWorker(swUrl, config);
 
-      // Add some additional logging to localhost, pointing developers to the
-      // service worker/PWA documentation.
-      navigator.serviceWorker.ready.then(() => {
-        console.log(
-          'This web app is being served cache-first by a service ' +
-            'worker. To learn more, visit https://bit.ly/CRA-PWA'
-        );
-      });
       return;
     }
 
@@ -81,10 +67,26 @@ export function register(config) {
   });
 }
 
+// Long play sessions never navigate, so the browser would not look for a new
+// version on its own; check periodically while the page is visible.
+const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
 function registerValidSW(swUrl, config) {
   navigator.serviceWorker
     .register(swUrl)
-    .then(registration => {
+    .then((registration) => {
+      // An update downloaded in an earlier visit (e.g. the prompt was
+      // dismissed) is still waiting: offer it again.
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        invokeCallback(config?.onUpdate, registration);
+      }
+
+      setInterval(() => {
+        if (!document.hidden) {
+          registration.update().catch(() => {});
+        }
+      }, UPDATE_CHECK_INTERVAL_MS);
+
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
         if (!installingWorker) {
@@ -110,7 +112,7 @@ function registerValidSW(swUrl, config) {
         };
       };
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('Error during service worker registration:', error);
     });
 }
@@ -144,7 +146,7 @@ export function unregister() {
     return;
   }
 
-  navigator.serviceWorker.ready.then(registration => {
+  navigator.serviceWorker.ready.then((registration) => {
     registration.unregister();
   });
 }

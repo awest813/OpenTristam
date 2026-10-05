@@ -1100,7 +1100,10 @@ class App extends React.Component {
           )}
           {offlineReady && !started && (
             <div className="offlineReadyToast" role="status" aria-live="polite" aria-atomic="true">
-              Ready to play offline.{' '}
+              {/* The app shell is cached now; game data only once played online. */}
+              {this.state.has_spawn
+                ? 'Ready to play offline.'
+                : 'Works offline now. Play shareware once while online to keep it playable offline.'}{' '}
               <button
                 type="button"
                 onClick={this.dismissOfflineReady}

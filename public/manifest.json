@@ -1,11 +1,12 @@
 {
+  "id": "./",
   "short_name": "OpenTristam",
   "name": "OpenTristam — Diablo in the Browser",
   "description": "Play Diablo 1 in your browser using WebAssembly. Supports shareware and retail MPQ, local saves, touch controls, and multiplayer.",
   "icons": [
     {
       "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "sizes": "32x32 16x16",
       "type": "image/x-icon"
     },
     {
@@ -18,10 +19,17 @@
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "./",
+  "scope": "./",
   "display": "fullscreen",
   "orientation": "landscape",
   "theme_color": "#000000",

@@ -1,44 +1,117 @@
 // OpenTristam Service Worker
-// __CACHE_VERSION__ is replaced at build time by scripts/generate-sw.mjs
+//
+// scripts/generate-sw.mjs stamps the three constants below at build time:
+// - CACHE_VERSION changes on every build so browsers pick up the new worker.
+// - PRECACHE_ASSETS lists the hashed JS/CSS the app needs to open offline.
+// - BUILD_ASSETS lists every hashed file in build/assets (used for pruning).
 const CACHE_VERSION = '__CACHE_VERSION__';
-const CACHE_NAME = 'opentristam-' + CACHE_VERSION;
+const PRECACHE_ASSETS = [
+  /* __PRECACHE_ASSETS__ */
+];
+const BUILD_ASSETS = [
+  /* __BUILD_ASSETS__ */
+];
 
-// Never cache MPQ files — they can be 50 MB+ and live in IndexedDB anyway.
-// The engine .wasm files are content-hashed under /assets/, so they are cached
-// cache-first like JS chunks: repeat launches skip a ~1.5 MB download and the
-// game can actually start offline once it has been played once.
+// HTML, manifest and icons: versioned, refreshed network-first.
+const SHELL_CACHE = 'opentristam-shell-' + CACHE_VERSION;
+// Content-hashed files under assets/ never change for a given URL, so they live
+// in one long-lived cache shared across versions. Unchanged chunks and the
+// ~1.5 MB engine .wasm are not re-downloaded after every deploy.
+const ASSET_CACHE = 'opentristam-assets';
+const SHELL_FILES = [
+  '',
+  'index.html',
+  'storage.html',
+  'manifest.json',
+  'favicon.ico',
+  'icon-192.png',
+  'icon-512.png',
+  'icon-maskable-512.png',
+];
+// Assets of the build that was active before this one, so tabs still running
+// the previous version can finish lazy-loading their chunks.
+const PREVIOUS_ASSETS_KEY = '__previous-build-assets__';
+
+// Never cache MPQ files — they are tens of MB and live in IndexedDB anyway.
 const NO_CACHE_RE = /\.mpq$/i;
+// Fall back to the cached shell if a navigation hasn't answered by then.
+const NAVIGATION_TIMEOUT_MS = 4000;
 
 const ORIGIN = self.location.origin;
 
 // ─── Install ─────────────────────────────────────────────────────────────────
-// Precache the root HTML shell so the app can open offline after first visit.
+// Precache the shell and the app code. If this fails the worker does not
+// install, so the app never claims to work offline when it can't.
 
 self.addEventListener('install', (event) => {
   const base = self.registration.scope; // e.g. 'https://…/OpenTristam/'
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll([base, base + 'index.html']).catch(() => {
-        // Non-fatal: precache skipped if network is unavailable during install.
-      })
-    )
+    (async () => {
+      const shell = await caches.open(SHELL_CACHE);
+      await shell.addAll(SHELL_FILES.map((file) => base + file));
+
+      const assets = await caches.open(ASSET_CACHE);
+      const missing = [];
+      for (const path of PRECACHE_ASSETS) {
+        const url = base + path;
+        if (!(await assets.match(url))) {
+          missing.push(url);
+        }
+      }
+      await assets.addAll(missing);
+    })()
   );
   // Do NOT call skipWaiting here — we wait for the user to confirm the update.
 });
 
 // ─── Activate ────────────────────────────────────────────────────────────────
-// Remove any caches from previous versions.
+// Remove caches from previous versions and prune hashed assets that neither
+// this build nor the previous one uses.
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-      )
-      .then(() => self.clients.claim())
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter(
+            (key) => key.startsWith('opentristam-') && key !== SHELL_CACHE && key !== ASSET_CACHE
+          )
+          .map((key) => caches.delete(key))
+      );
+      await pruneAssets();
+      await self.clients.claim();
+    })()
   );
 });
+
+async function pruneAssets() {
+  if (BUILD_ASSETS.length === 0) {
+    return; // Unstamped worker (e.g. a dev build): nothing to compare against.
+  }
+  const base = self.registration.scope;
+  const cache = await caches.open(ASSET_CACHE);
+  const previousResponse = await cache.match(base + PREVIOUS_ASSETS_KEY);
+  let previous = [];
+  try {
+    previous = previousResponse ? await previousResponse.json() : [];
+  } catch (_err) {
+    previous = [];
+  }
+  const keep = new Set([...BUILD_ASSETS, ...previous].map((path) => base + path));
+  keep.add(base + PREVIOUS_ASSETS_KEY);
+  for (const request of await cache.keys()) {
+    if (!keep.has(request.url)) {
+      await cache.delete(request);
+    }
+  }
+  await cache.put(
+    base + PREVIOUS_ASSETS_KEY,
+    new Response(JSON.stringify(BUILD_ASSETS), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+}
 
 // ─── Fetch ───────────────────────────────────────────────────────────────────
 
@@ -53,8 +126,8 @@ self.addEventListener('fetch', (event) => {
   // Skip game archives: they are large and persisted in IndexedDB instead.
   if (NO_CACHE_RE.test(url.pathname)) return;
 
-  // Hashed asset chunks (JS/CSS emitted by Vite into /assets/) never change
-  // content for the same URL, so cache-first is safe and fast.
+  // Hashed asset chunks (JS/CSS/WASM emitted by Vite into /assets/) never
+  // change content for the same URL, so cache-first is safe and fast.
   if (url.pathname.includes('/assets/')) {
     event.respondWith(cacheFirst(request));
     return;
@@ -68,13 +141,15 @@ self.addEventListener('fetch', (event) => {
 // ─── Strategies ──────────────────────────────────────────────────────────────
 
 async function cacheFirst(request) {
-  const cached = await caches.match(request);
+  // Hashed URLs identify their content, so ignore Vary: the page requests
+  // module scripts with an Origin header that the precache request lacked.
+  const cached = await caches.match(request, { ignoreVary: true });
   if (cached) return cached;
   try {
     const response = await fetch(request);
     // 206 partial responses cannot be stored by the Cache API.
     if (response.ok && response.status !== 206) {
-      const cache = await caches.open(CACHE_NAME);
+      const cache = await caches.open(ASSET_CACHE);
       cache.put(request, response.clone()).catch(() => {});
     }
     return response;
@@ -83,24 +158,55 @@ async function cacheFirst(request) {
   }
 }
 
+async function cachedFallback(request) {
+  const cached = await caches.match(request, {
+    ignoreSearch: request.mode === 'navigate',
+    ignoreVary: true,
+  });
+  if (cached) return cached;
+  // Any navigation inside the app can be served by the shell.
+  if (request.mode === 'navigate') {
+    const shell = await caches.match(self.registration.scope, { ignoreVary: true });
+    if (shell) return shell;
+  }
+  return null;
+}
+
 async function networkFirst(request) {
-  try {
-    const response = await fetch(request);
+  const network = fetch(request).then(async (response) => {
     if (response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
+      const cache = await caches.open(SHELL_CACHE);
+      cache.put(request, response.clone()).catch(() => {});
     }
     return response;
-  } catch (_err) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    // Return a minimal offline page for navigation requests.
-    if (request.mode === 'navigate') {
-      const shell = await caches.match(self.registration.scope);
-      if (shell) return shell;
+  });
+  // The timeout or cache may answer first; don't leave a stray rejection.
+  network.catch(() => {});
+
+  if (request.mode === 'navigate') {
+    // On a stalled connection ("lie-fi"), don't leave the player staring at a
+    // blank page: serve the cached shell after a short wait.
+    const timeout = new Promise((resolve) => setTimeout(resolve, NAVIGATION_TIMEOUT_MS, null));
+    try {
+      const first = await Promise.race([network, timeout]);
+      if (first) return first;
+      const cached = await cachedFallback(request);
+      if (cached) return cached;
+      return await network;
+    } catch (_err) {
+      // Network failed outright; fall through to the cache.
     }
-    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+  } else {
+    try {
+      return await network;
+    } catch (_err) {
+      // Fall through to the cache.
+    }
   }
+
+  const cached = await cachedFallback(request);
+  if (cached) return cached;
+  return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
 }
 
 // ─── Messages ────────────────────────────────────────────────────────────────

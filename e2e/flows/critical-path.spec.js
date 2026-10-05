@@ -133,3 +133,40 @@ test.describe('lazy screen failure', () => {
     await expect(page.getByRole('button', { name: 'Play Shareware' })).toBeVisible();
   });
 });
+
+test.describe('offline', () => {
+  async function waitForServiceWorker(page) {
+    await page.waitForFunction(() =>
+      navigator.serviceWorker.ready.then((r) => r.active && r.active.state === 'activated')
+    );
+  }
+
+  test('the app opens offline after a single online visit', async ({ page, context }) => {
+    await page.goto(APP);
+    await expect(page.locator('.start')).toBeVisible();
+    await waitForServiceWorker(page);
+    // Shareware hasn't been played yet, so the toast must not overpromise.
+    await expect(page.locator('.offlineReadyToast')).toContainText('Works offline now');
+
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Play Shareware' })).toBeVisible();
+  });
+
+  test('shareware played once online can be played offline', async ({ page, context }) => {
+    test.setTimeout(180_000);
+    await page.goto(APP);
+    await waitForServiceWorker(page);
+    await page.reload(); // let the service worker control the page
+
+    await page.getByRole('button', { name: 'Play Shareware' }).click();
+    await expect(page.locator('.App.started')).toBeVisible({ timeout: 90_000 });
+
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByText('Shareware data is already cached in this browser.')).toBeVisible();
+    await page.getByRole('button', { name: 'Play Shareware' }).click();
+    await expect(page.locator('.App.started')).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  });
+});
