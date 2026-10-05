@@ -78,3 +78,15 @@ test('the loading screen reports download progress', async ({ page }) => {
     page.getByRole('status').filter({ has: page.locator('.loadingText') })
   ).toBeVisible();
 });
+
+test('missing shareware data points players to Select MPQ', async ({ page }) => {
+  await page.route('**/spawn.mpq', (route) => route.fulfill({ status: 404, body: 'Not found' }));
+  await page.goto(APP);
+
+  await page.getByRole('button', { name: 'Play Shareware' }).click();
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog).toContainText('doesn’t host the shareware data');
+  await expect(dialog).not.toContainText('Connection problem');
+  await page.getByRole('button', { name: 'Back to start' }).click();
+  await expect(page.getByRole('button', { name: 'Select MPQ' })).toBeVisible();
+});

@@ -52,6 +52,11 @@ All notable changes to this project will be documented in this file.
 - Bold copy (`<strong>`) rendered as plain text because of the CSS reset.
 - Initial dialog focus no longer scrolls the title out of view on short screens.
 - Storage warning banner can be dismissed instead of permanently covering the start screen.
+- **Play Shareware** on a host without `spawn.mpq` (it is not in the repository, and the Pages deploy does not add it) reported a generic error or "download looks corrupted" (SPA hosts answer missing files with `index.html`); it now explains that the site doesn't host the shareware data and points to **Select MPQ**.
+- Data-file problems (missing/invalid MPQ, missing assets) are framed as "Game data problem" without a GitHub bug-report link; crashes keep the report link.
+- The GitHub report link truncates very long stack traces so the URL stays under GitHub's limit.
+- Launching closes its AudioContext if the game runtime chunk itself fails to load, and tolerates rejections without a message.
+- Docs: README and build guide no longer claim that `DIABDAT.MPQ` is saved between visits, that `spawn.mpq` loads with no extra files or from a CDN, or that Vite sets COOP/COEP headers; the bundle budget docs cover worker/lazy chunks; the e2e command is documented.
 - Quitting the game could lose the final save: the page reloaded while the save's IndexedDB write was still in flight. Exit now waits (up to 5 s) for pending writes.
 - Mouse clicks on in-game banners and notices (e.g. multiplayer "Dismiss") also clicked the game world underneath; they now only operate the button. Releases still reach the game so drags can't stick.
 - A failed launch (download error, storage failure) leaked an AudioContext on every retry; failures now close it, and worker setup errors tear down the partially created worker.

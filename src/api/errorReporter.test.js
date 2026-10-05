@@ -3,6 +3,15 @@ import { buildDiagnosticsText, buildIssueUrl, describeStartupError } from './err
 const ORIGINAL_NAV_USER_AGENT = navigator.userAgent;
 
 describe('buildIssueUrl', () => {
+  it('keeps the report URL short enough for GitHub with a huge stack', () => {
+    const stack = Array.from({ length: 2000 }, (_, i) => `    at frame${i} (file.js:${i}:1)`).join(
+      '\n'
+    );
+    const url = buildIssueUrl({ message: 'Boom', stack }, false);
+    expect(url.length).toBeLessThan(8000);
+    expect(decodeURIComponent(new URL(url).searchParams.get('body'))).toMatch(/truncated/);
+  });
+
   const retail = true;
   // shareware = false is the implicit alternative; only retail is needed here
 
@@ -86,6 +95,12 @@ describe('describeStartupError', () => {
     'Request failed with status code 429',
   ])('treats %s as a network failure', (raw) => {
     expect(describeStartupError(raw).isNetwork).toBe(true);
+  });
+
+  it('points to Select MPQ when the host does not ship shareware data', () => {
+    const result = describeStartupError('spawn.mpq is not available on this server.');
+    expect(result.isNetwork).toBe(false);
+    expect(result.message).toMatch(/Select MPQ/);
   });
 
   it('explains a missing asset (404) without calling it a connection problem', () => {

@@ -22,11 +22,16 @@ export default function ErrorOverlay(props) {
     return null;
   }
 
-  const { isNetwork, message } = describeStartupError(error.message);
-  const heading = isNetwork ? 'Connection problem' : 'Something went wrong';
-  const lead = isNetwork
-    ? 'Couldn’t download the game data.'
-    : 'The game hit an unexpected error and had to stop.';
+  const { isNetwork, isData, message } = describeStartupError(error.message);
+  let heading = 'Something went wrong';
+  let lead = 'The game hit an unexpected error and had to stop.';
+  if (isNetwork) {
+    heading = 'Connection problem';
+    lead = 'Couldn’t download the game data.';
+  } else if (isData) {
+    heading = 'Game data problem';
+    lead = 'The game couldn’t load its data files.';
+  }
   const primaryActionLabel = isNetwork ? 'Try again' : 'Back to start';
 
   const copyDetails = async () => {
@@ -59,7 +64,8 @@ export default function ErrorOverlay(props) {
         <button type="button" className="errorCopyLink" onClick={copyDetails}>
           {copied ? 'Copied' : 'Copy details'}
         </button>
-        {!isNetwork && (
+        {/* Network and data-file problems aren't bugs, so don't ask for a report. */}
+        {!isNetwork && !isData && (
           <ExternalLink className="errorIssueLink" href={buildIssueUrl(error, retail)}>
             Report on GitHub
           </ExternalLink>

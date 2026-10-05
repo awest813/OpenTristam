@@ -194,14 +194,22 @@ export function startGame(app, file) {
   // gesture; Safari will not start audio created after an async gap.
   const audio = init_sound();
   preloadGameRuntime()
-    .then((load_game) => load_game(app, file, !retail, audio))
+    .then(
+      (load_game) => load_game(app, file, !retail, audio),
+      (e) => {
+        // The runtime chunk failed to load (e.g. flaky network), so load_game
+        // never ran to clean up; close the AudioContext created above.
+        audio.stop_all();
+        throw e;
+      }
+    )
     .then(
       (game) => {
         app.game = game;
         app.runtimeListeners.attach();
         app.setState({ started: true, loading: false });
       },
-      (e) => handleGameError(app, e.message, e.stack)
+      (e) => handleGameError(app, e && e.message, e && e.stack)
     );
 }
 

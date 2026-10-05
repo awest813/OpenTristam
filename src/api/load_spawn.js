@@ -4,6 +4,8 @@ const SpawnSizes = [50274091, 25830791];
 
 export { SpawnSizes };
 
+export const SPAWN_MISSING_MESSAGE = 'spawn.mpq is not available on this server.';
+
 export default async function load_spawn(api, fs) {
   let file = fs.files.get('spawn.mpq');
   if (!file && typeof fs.load === 'function') {
@@ -24,17 +26,30 @@ export default async function load_spawn(api, fs) {
     file = null;
   }
   if (!file) {
-    const buffer = await downloadArrayBuffer(process.env.PUBLIC_URL + '/spawn.mpq', {
-      onProgress: (e) => {
-        if (api.onProgress) {
-          api.onProgress({
-            text: 'Downloading...',
-            loaded: e.loaded,
-            total: e.total || SpawnSizes[1],
-          });
-        }
-      },
-    });
+    let buffer;
+    try {
+      buffer = await downloadArrayBuffer(process.env.PUBLIC_URL + '/spawn.mpq', {
+        onProgress: (e) => {
+          if (api.onProgress) {
+            api.onProgress({
+              text: 'Downloading...',
+              loaded: e.loaded,
+              total: e.total || SpawnSizes[1],
+            });
+          }
+        },
+      });
+    } catch (e) {
+      if (/status code 404\b/.test(e && e.message)) {
+        // The host simply doesn't ship shareware data (it is not in the repo).
+        throw new Error(SPAWN_MISSING_MESSAGE);
+      }
+      throw e;
+    }
+    // Hosts with an SPA fallback answer a missing file with index.html (200).
+    if (new Uint8Array(buffer, 0, Math.min(1, buffer.byteLength))[0] === 0x3c /* '<' */) {
+      throw new Error(SPAWN_MISSING_MESSAGE);
+    }
     if (!SpawnSizes.includes(buffer.byteLength)) {
       throw Error('Invalid spawn.mpq size. Try clearing cache and refreshing the page.');
     }

@@ -23,11 +23,11 @@ This guide covers everything you need to develop, test, and build OpenTristam lo
 
 ## Prerequisites
 
-| Tool | Required version | Notes |
-|---|---|---|
-| **Node.js** | 22.x (LTS) | 20.x also works |
-| **npm** | 10+ (bundled with Node 22) | Do not use Yarn — lockfile is npm-only |
-| **Git** | Any recent version | — |
+| Tool        | Required version           | Notes                                  |
+| ----------- | -------------------------- | -------------------------------------- |
+| **Node.js** | 22.x (LTS)                 | 20.x also works                        |
+| **npm**     | 10+ (bundled with Node 22) | Do not use Yarn — lockfile is npm-only |
+| **Git**     | Any recent version         | —                                      |
 
 Check your versions:
 
@@ -82,11 +82,11 @@ cp /path/to/spawn.mpq public/spawn.mpq
 npm start
 ```
 
-The game will load the shareware version automatically. If `spawn.mpq` is absent, the site will attempt to download it from the CDN hosted alongside the live demo.
+**Play Shareware** downloads `spawn.mpq` from the same server (`public/` in development, the site root when deployed) and caches it in IndexedDB. It is not part of the repository, and nothing fetches it from elsewhere: if it is absent, the app reports that the shareware data isn't hosted and suggests loading a local copy through **Select MPQ**.
 
 ### Retail mode
 
-Drag and drop `DIABDAT.MPQ` onto the running browser window. The file is read in-browser and stored in IndexedDB — it never touches your local filesystem through Node.
+Drag and drop `DIABDAT.MPQ` onto the running browser window (or use **Select MPQ**). The file is read in-browser and passed to the game worker; it is not uploaded and not persisted, so it must be selected again on each visit.
 
 ### Port conflicts
 
@@ -156,21 +156,21 @@ Notes:
 
 ### What is tested
 
-| Module | Test file |
-|---|---|
-| Codec (SHA1 stream cipher, MPQ crypto) | `src/api/codec.test.js` |
-| Packet serialization / multiplayer protocol | `src/api/packet.test.js` |
-| Save-file parsing | `src/api/savefile.test.js` |
-| Sound API | `src/api/sound.test.js` |
-| Error reporter | `src/api/errorReporter.test.js` |
-| Drag-and-drop detection | `src/input/fileDrop.test.js` |
-| File-drop target lifecycle | `src/input/fileDropTarget.test.js` |
-| Event listener lifecycle | `src/input/eventListeners.test.js` |
-| Touch controls | `src/input/touchControls.test.js` |
-| Keyboard handling | `src/input/keyboard.test.js` |
-| Mouse handling | `src/input/mouseHandlers.test.js` |
-| Session lifecycle | `src/engine/session.test.js` |
-| Session context / UI components | `src/ui/sessionContext.test.js` |
+| Module                                      | Test file                          |
+| ------------------------------------------- | ---------------------------------- |
+| Codec (SHA1 stream cipher, MPQ crypto)      | `src/api/codec.test.js`            |
+| Packet serialization / multiplayer protocol | `src/api/packet.test.js`           |
+| Save-file parsing                           | `src/api/savefile.test.js`         |
+| Sound API                                   | `src/api/sound.test.js`            |
+| Error reporter                              | `src/api/errorReporter.test.js`    |
+| Drag-and-drop detection                     | `src/input/fileDrop.test.js`       |
+| File-drop target lifecycle                  | `src/input/fileDropTarget.test.js` |
+| Event listener lifecycle                    | `src/input/eventListeners.test.js` |
+| Touch controls                              | `src/input/touchControls.test.js`  |
+| Keyboard handling                           | `src/input/keyboard.test.js`       |
+| Mouse handling                              | `src/input/mouseHandlers.test.js`  |
+| Session lifecycle                           | `src/engine/session.test.js`       |
+| Session context / UI components             | `src/ui/sessionContext.test.js`    |
 
 Web Worker and WASM-dependent code is not unit-tested (those require a real browser environment). Use the dev server for manual testing.
 
@@ -202,13 +202,13 @@ Vite builds a production bundle into `build/`. No special environment flags are 
 
 The production bundle includes:
 
-| Output | Description |
-|---|---|
-| `build/assets/*.js` | Chunked JS bundles (main + workers split) |
-| `build/assets/*.css` | Minified CSS |
+| Output                | Description                                    |
+| --------------------- | ---------------------------------------------- |
+| `build/assets/*.js`   | Chunked JS bundles (main + workers split)      |
+| `build/assets/*.css`  | Minified CSS                                   |
 | `build/assets/*.wasm` | WebAssembly binaries (served as static assets) |
-| `build/index.html` | Main entry point |
-| `build/storage.html` | Cross-origin storage helper (IndexedDB bridge) |
+| `build/index.html`    | Main entry point                               |
+| `build/storage.html`  | Cross-origin storage helper (IndexedDB bridge) |
 
 ### Preview the production build locally
 
@@ -228,8 +228,9 @@ npm run check:bundle-budget
 
 This validates gzip-compressed size budgets for:
 
-- main JS chunk
-- total JS
+- main JS chunk (the code needed for the start screen; the game runtime, Save Manager and crash reporting are lazy chunks)
+- worker JS (`*.worker` bundles)
+- total JS (main + workers + lazy chunks)
 - total CSS
 - total WASM
 
@@ -237,6 +238,7 @@ If a budget is exceeded, the command exits non-zero and prints the failing metri
 You can temporarily override thresholds via environment variables such as:
 
 - `BUNDLE_BUDGET_MAIN_JS_GZIP_BYTES`
+- `BUNDLE_BUDGET_WORKER_JS_GZIP_BYTES`
 - `BUNDLE_BUDGET_TOTAL_JS_GZIP_BYTES`
 - `BUNDLE_BUDGET_TOTAL_CSS_GZIP_BYTES`
 - `BUNDLE_BUDGET_TOTAL_WASM_GZIP_BYTES`
@@ -290,14 +292,14 @@ source ./emsdk_env.sh
 
 Follow the build instructions in [d07RiV/devilution](https://github.com/d07RiV/devilution). The output files map to this repository as:
 
-| Output file | Destination in this repo |
-|---|---|
-| `Diablo.js` (Emscripten glue) | `src/api/Diablo.jscc` |
-| `Diablo.wasm` | `src/api/Diablo.wasm` |
-| `DiabloSpawn.js` | `src/api/DiabloSpawn.jscc` |
-| `DiabloSpawn.wasm` | `src/api/DiabloSpawn.wasm` |
-| `MpqCmp.js` | `src/mpqcmp/MpqCmp.jscc` |
-| `MpqCmp.wasm` | `src/mpqcmp/MpqCmp.wasm` |
+| Output file                   | Destination in this repo   |
+| ----------------------------- | -------------------------- |
+| `Diablo.js` (Emscripten glue) | `src/api/Diablo.jscc`      |
+| `Diablo.wasm`                 | `src/api/Diablo.wasm`      |
+| `DiabloSpawn.js`              | `src/api/DiabloSpawn.jscc` |
+| `DiabloSpawn.wasm`            | `src/api/DiabloSpawn.wasm` |
+| `MpqCmp.js`                   | `src/mpqcmp/MpqCmp.jscc`   |
+| `MpqCmp.wasm`                 | `src/mpqcmp/MpqCmp.wasm`   |
 
 The `.jscc` extension is the convention used in this project for Emscripten JS-glue files. They are wrapped as ES modules by the `jsccPlugin()` in `vite.config.js` and, in the Jest test environment, stubbed via `config/jest/fileMock.js`.
 
@@ -309,11 +311,11 @@ After replacing the files, run `npm run build` and verify the game boots correct
 
 Vite injects environment variables at build time via `define` in `vite.config.js`. You can also use `.env` files at the repo root (Vite loads them automatically).
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `VITE_*` prefix | — | Any `VITE_`-prefixed variable is exposed to browser code via `import.meta.env.VITE_*` |
-| `NODE_ENV` | `development` / `production` | Set automatically by Vite |
-| `PORT` | `5173` | Dev server port (use `--port` CLI flag or `server.port` in vite.config.js) |
+| Variable        | Default                      | Purpose                                                                               |
+| --------------- | ---------------------------- | ------------------------------------------------------------------------------------- |
+| `VITE_*` prefix | —                            | Any `VITE_`-prefixed variable is exposed to browser code via `import.meta.env.VITE_*` |
+| `NODE_ENV`      | `development` / `production` | Set automatically by Vite                                                             |
+| `PORT`          | `5173`                       | Dev server port (use `--port` CLI flag or `server.port` in vite.config.js)            |
 
 For local development you almost never need to set anything manually.
 
@@ -339,7 +341,6 @@ npm ci --legacy-peer-deps
 
 1. **Missing `spawn.mpq`** — Either place it in `public/` or drag-drop `DIABDAT.MPQ` onto the page.
 2. **Stale service worker** — Open DevTools → Application → Service Workers → Unregister, then hard-reload.
-3. **SharedArrayBuffer not available** — Some features require `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers. The Vite dev server sets these via `server.headers` in `vite.config.js`; a custom static server may not.
 
 ---
 

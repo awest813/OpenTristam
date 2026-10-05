@@ -106,6 +106,13 @@ describe('ErrorOverlay', () => {
     expect(container.querySelector('.body').textContent).not.toMatch(/^invalid MPQ file$/i);
   });
 
+  it('frames data-file problems as such, without a bug-report link', async () => {
+    await renderWithSession({ error: { message: 'invalid MPQ file' } });
+    expect(container.querySelector('.header').textContent).toBe('Game data problem');
+    expect(container.querySelector('.errorLead').textContent).toMatch(/data files/);
+    expect(container.querySelector('a.errorIssueLink')).toBeNull();
+  });
+
   it('hides the GitHub report link for network failures', async () => {
     await renderWithSession({ error: { message: 'Network Error' } });
     expect(container.querySelector('a.errorIssueLink')).toBeNull();

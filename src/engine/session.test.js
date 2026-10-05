@@ -262,3 +262,91 @@ describe('setCursorPos', () => {
     expect(() => jest.runAllTimers()).not.toThrow();
   });
 });
+
+// ─── startGame launch path ───────────────────────────────────────────────────
+
+describe('startGame launch', () => {
+  function loadSession({ loadGame, loaderFails = false }) {
+    const audio = { stop_all: jest.fn() };
+    let session;
+    jest.isolateModules(() => {
+      jest.doMock('../api/sound', () => ({ __esModule: true, default: () => audio }));
+      if (loaderFails) {
+        jest.doMock('../api/loader', () => {
+          throw new Error('Failed to fetch dynamically imported module');
+        });
+      } else {
+        jest.doMock('../api/loader', () => ({ __esModule: true, default: loadGame }));
+      }
+      session = require('./session');
+    });
+    return { session, audio };
+  }
+
+  function makeApp() {
+    return {
+      state: { show_saves: false, loading: false, started: false },
+      setState: jest.fn(),
+      fileDropTarget: { detach: jest.fn(), attach: jest.fn() },
+      runtimeListeners: { attach: jest.fn(), detach: jest.fn() },
+      showStartupNotice: jest.fn(),
+    };
+  }
+
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  // startGame imports the loader asynchronously, after isolateModules returns,
+  // so the shared registry must be reset between tests.
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    jest.dontMock('../api/sound');
+    jest.dontMock('../api/loader');
+  });
+
+  it('passes the gesture-time AudioContext to load_game and starts the game', async () => {
+    const game = jest.fn();
+    const loadGame = jest.fn(() => Promise.resolve(game));
+    const { session, audio } = loadSession({ loadGame });
+    const app = makeApp();
+
+    session.startGame(app, null);
+    await flush();
+
+    expect(loadGame).toHaveBeenCalledWith(app, null, true, audio);
+    expect(app.game).toBe(game);
+    expect(app.runtimeListeners.attach).toHaveBeenCalled();
+    expect(app.setState).toHaveBeenCalledWith({ started: true, loading: false });
+  });
+
+  it('closes the AudioContext and shows an error when the runtime chunk fails', async () => {
+    const { session, audio } = loadSession({ loaderFails: true });
+    const app = makeApp();
+
+    session.startGame(app, null);
+    await flush();
+    await flush();
+
+    expect(audio.stop_all).toHaveBeenCalled();
+    const errorUpdate = app.setState.mock.calls
+      .map(([update]) => (typeof update === 'function' ? update({ error: null }) : update))
+      .find((update) => update && update.error);
+    expect(errorUpdate.error.message).toMatch(/Failed to fetch/);
+  });
+
+  it('surfaces load_game rejections without a message', async () => {
+    const { session } = loadSession({ loadGame: () => Promise.reject(undefined) });
+    const app = makeApp();
+
+    session.startGame(app, null);
+    await flush();
+    await flush();
+
+    const errorUpdate = app.setState.mock.calls
+      .map(([update]) => (typeof update === 'function' ? update({ error: null }) : update))
+      .find((update) => update && update.error);
+    expect(errorUpdate).toBeTruthy();
+  });
+});
