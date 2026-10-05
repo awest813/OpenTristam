@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Shareware data ships with the site: `public/spawn.mpq` (the freely redistributable shareware archive from the DevilutionX assets release, ~25 MB) is committed, so **Play Shareware** works on GitHub Pages and in local development without extra files. Verified end to end: the game boots, a new hero enters Tristram, and Save Game → Quit persists the save.
 - Repository governance files, contribution and security policy.
 - Community issue and pull request templates.
 - Collapsible start-screen Settings panel for touch/display controls.
@@ -52,7 +53,7 @@ All notable changes to this project will be documented in this file.
 - Bold copy (`<strong>`) rendered as plain text because of the CSS reset.
 - Initial dialog focus no longer scrolls the title out of view on short screens.
 - Storage warning banner can be dismissed instead of permanently covering the start screen.
-- **Play Shareware** on a host without `spawn.mpq` (it is not in the repository, and the Pages deploy does not add it) reported a generic error or "download looks corrupted" (SPA hosts answer missing files with `index.html`); it now explains that the site doesn't host the shareware data and points to **Select MPQ**.
+- **Play Shareware** on a host without `spawn.mpq` (previously the case for the GitHub Pages deploy) reported a generic error or "download looks corrupted" (SPA hosts answer missing files with `index.html`); it now explains that the site doesn't host the shareware data and points to **Select MPQ**.
 - Data-file problems (missing/invalid MPQ, missing assets) are framed as "Game data problem" without a GitHub bug-report link; crashes keep the report link.
 - The GitHub report link truncates very long stack traces so the URL stays under GitHub's limit.
 - Launching closes its AudioContext if the game runtime chunk itself fails to load, and tolerates rejections without a message.

@@ -90,3 +90,28 @@ test('missing shareware data points players to Select MPQ', async ({ page }) => 
   await page.getByRole('button', { name: 'Back to start' }).click();
   await expect(page.getByRole('button', { name: 'Select MPQ' })).toBeVisible();
 });
+
+test('shareware boots into the game and caches its data', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto(APP);
+
+  await page.getByRole('button', { name: 'Play Shareware' }).click();
+  await expect(page.locator('.App.started')).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+
+  // The archive is persisted so the next visit skips the download.
+  const cached = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const request = indexedDB.open('diablo_fs');
+        request.onsuccess = () => {
+          const query = request.result.transaction('kv').objectStore('kv').getAllKeys();
+          query.onsuccess = () => {
+            request.result.close();
+            resolve(query.result.includes('spawn.mpq'));
+          };
+        };
+      })
+  );
+  expect(cached).toBe(true);
+});

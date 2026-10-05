@@ -75,14 +75,9 @@ This starts the **Vite** dev server on **http://localhost:5173** (Vite's default
 
 ### Shareware mode (no game files needed)
 
-Place `spawn.mpq` in the `public/` folder before starting:
+The shareware archive is committed at `public/spawn.mpq`, so `npm start` is enough. **Play Shareware** downloads it from the same server (`public/` in development, the site root when deployed) and caches it in IndexedDB.
 
-```bash
-cp /path/to/spawn.mpq public/spawn.mpq
-npm start
-```
-
-**Play Shareware** downloads `spawn.mpq` from the same server (`public/` in development, the site root when deployed) and caches it in IndexedDB. It is not part of the repository, and nothing fetches it from elsewhere: if it is absent, the app reports that the shareware data isn't hosted and suggests loading a local copy through **Select MPQ**.
+The file is the freely redistributable shareware data from the [DevilutionX assets release](https://github.com/diasurgical/devilutionx-assets/releases/tag/v2) (25,448,219 bytes, SHA-256 `64427cd7c1ba904eaa2e0031c16a6b136d0ecef9abc888c5ff8344b459356e38`). `src/api/load_spawn.js` accepts it alongside the original 50 MB release and diabloweb's compressed build. If a fork removes the file, the app reports that the shareware data isn't hosted and suggests loading a local copy through **Select MPQ**.
 
 ### Retail mode
 
@@ -339,7 +334,7 @@ npm ci --legacy-peer-deps
 
 **Likely causes:**
 
-1. **Missing `spawn.mpq`** — Either place it in `public/` or drag-drop `DIABDAT.MPQ` onto the page.
+1. **Missing `spawn.mpq`** — It ships in `public/`; if your checkout lacks it (e.g. a sparse clone), restore it or drag-drop `DIABDAT.MPQ` onto the page.
 2. **Stale service worker** — Open DevTools → Application → Service Workers → Unregister, then hard-reload.
 
 ---

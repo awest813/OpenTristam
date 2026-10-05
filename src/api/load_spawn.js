@@ -1,6 +1,8 @@
 import { downloadArrayBuffer } from './download';
 
-const SpawnSizes = [50274091, 25830791];
+// Accepted shareware archives: the original release, diabloweb's compressed
+// build, and the DevilutionX assets copy shipped in public/spawn.mpq.
+const SpawnSizes = [50274091, 25830791, 25448219];
 
 export { SpawnSizes };
 

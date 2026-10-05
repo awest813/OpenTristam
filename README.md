@@ -25,7 +25,7 @@ At runtime:
 ### Play the shareware version (free)
 
 1. Clone or download the repo and run it locally (see [Local development](#local-development)).
-2. Place `spawn.mpq` (the freely available shareware data) in `public/`. It is not included in this repository. Players download it from your server on first launch and it is cached in the browser afterwards. Without it, **Play Shareware** explains that the data isn't hosted, and players can load a local `spawn.mpq` through **Select MPQ** instead.
+2. Shareware data (`public/spawn.mpq`, ~25 MB) is included in the repository and deployed with the site. Players download it on first launch; it is cached in the browser afterwards.
 
 ### Play the full retail version
 
@@ -77,7 +77,7 @@ npm start -- --host 0.0.0.0
 
 Then navigate to `http://<your-machine-ip>:5173` on the second device.
 
-For shareware testing, place `spawn.mpq` in `public/`.
+Shareware data ships in `public/spawn.mpq`, so **Play Shareware** works out of the box.
 
 ### Build and test
 
@@ -143,7 +143,7 @@ Contributions are welcome! Here's how to get involved:
 
 ## Legal
 
-Diablo is a trademark of Blizzard Entertainment. **This project does not distribute any commercial game assets.** You must supply your own legally obtained `DIABDAT.MPQ` for full-version play. The shareware data (`spawn.mpq`) is freely available.
+Diablo is a trademark of Blizzard Entertainment. **This project does not distribute any commercial game assets.** You must supply your own legally obtained `DIABDAT.MPQ` for full-version play. The shareware data in `public/spawn.mpq` is the freely redistributable Diablo shareware archive, taken from the [DevilutionX assets release](https://github.com/diasurgical/devilutionx-assets/releases/tag/v2) (SHA-256 `64427cd7c1ba904eaa2e0031c16a6b136d0ecef9abc888c5ff8344b459356e38`).
 
 ---
 
