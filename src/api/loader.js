@@ -43,6 +43,9 @@ async function do_load_game(api, audio, mpq, spawn) {
   document.addEventListener('visibilitychange', onVisibilityChange);
 
   return await new Promise((resolve, reject) => {
+    let cleanup = () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
     try {
       const worker = new GameWorker();
       const diagnostics = createMultiplayerDiagnostics({
@@ -93,6 +96,7 @@ async function do_load_game(api, audio, mpq, spawn) {
           worker.terminate();
         }
       };
+      cleanup = dispose;
 
       worker.addEventListener('message', ({ data }) => {
         switch (data.action) {
@@ -147,7 +151,9 @@ async function do_load_game(api, audio, mpq, spawn) {
             break;
           case WorkerToMain.EXIT:
             dispose();
-            api.onExit();
+            // The engine saves just before exiting and onExit reloads the
+            // page; let those IndexedDB writes finish first.
+            fsAdapter.flush().then(() => api.onExit());
             break;
           case WorkerToMain.CURRENT_SAVE:
             api.setCurrentSave(data.name);
@@ -182,6 +188,13 @@ async function do_load_game(api, audio, mpq, spawn) {
         transfer
       );
     } catch (e) {
+      // e.g. worker construction or INIT postMessage failed: tear down what
+      // was set up so far before surfacing the error.
+      try {
+        cleanup();
+      } catch (_e) {
+        // Best-effort cleanup.
+      }
       reject(e);
     }
   });
@@ -198,5 +211,15 @@ async function do_load_game(api, audio, mpq, spawn) {
  * @returns {Promise<Function>} Promise resolving to a callable game API bridge.
  */
 export default function load_game(api, mpq, spawn, audio = init_sound()) {
-  return do_load_game(api, audio, mpq, spawn);
+  return do_load_game(api, audio, mpq, spawn).catch((e) => {
+    // Failures before the worker exists (download, storage, worker creation)
+    // skip dispose(); close the AudioContext here so retries don't leak one
+    // per attempt. stop_all() is idempotent, so a second call is harmless.
+    try {
+      audio.stop_all();
+    } catch (_e) {
+      // Best-effort cleanup.
+    }
+    throw e;
+  });
 }

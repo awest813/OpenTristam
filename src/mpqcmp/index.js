@@ -46,9 +46,8 @@ export default class CompressMpq extends React.Component {
   }
 
   onClose = () => {
-    if (this.state.url) {
-      URL.revokeObjectURL(this.state.url);
-    }
+    this.revokeUrl();
+    this.setState({ url: null });
     this.props.onClose();
   };
 
@@ -56,11 +55,23 @@ export default class CompressMpq extends React.Component {
     this.setState({ error: null });
   };
 
+  revokeUrl() {
+    if (this.state.url) {
+      URL.revokeObjectURL(this.state.url);
+    }
+  }
+
+  componentWillUnmount() {
+    // The compressed MPQ blob is hundreds of MB; don't keep it alive.
+    this.revokeUrl();
+  }
+
   start(file) {
+    this.revokeUrl();
     this.setState({ started: true, error: null, url: null });
     compress(file, (text, loaded, total) => this.onProgress({ text, loaded, total })).then(
       this.onDone,
-      (e) => this.onError(e.message)
+      (e) => this.onError(e && e.message)
     );
   }
 

@@ -254,4 +254,11 @@ describe('setCursorPos', () => {
     jest.runAllTimers();
     expect(app._calls).toEqual([['DApi_Mouse', 0, 0, 0, 100, 200]]);
   });
+
+  it('skips the deferred dispatch if the game was disposed meanwhile', () => {
+    const app = makeApp();
+    setCursorPos(app, 100, 200);
+    app.game = null;
+    expect(() => jest.runAllTimers()).not.toThrow();
+  });
 });

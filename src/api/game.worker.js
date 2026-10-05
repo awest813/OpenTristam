@@ -39,7 +39,9 @@ function onError(err, action = WorkerToMain.ERROR) {
   if (err instanceof Error) {
     worker.postMessage({ action, error: err.toString(), stack: err.stack });
   } else {
-    worker.postMessage({ action, error: err.toString() });
+    // Rejections can carry anything, including undefined (e.g. an aborted
+    // FileReader); never let reporting the error throw and hang the loader.
+    worker.postMessage({ action, error: err != null ? String(err) : 'Unknown error' });
   }
 }
 
@@ -166,11 +168,15 @@ const DApi = {
             }
           },
           (code) => {
+            // A failed connection used to be rethrown here, inside a promise
+            // callback, so it vanished as an unhandled rejection and the game
+            // waited forever. Report it as "closed" (1), the same status the
+            // engine already handles when the socket closes before opening.
             if (typeof code !== 'number') {
-              throw code;
-            } else {
-              call_api('SNet_WebsocketStatus', code);
+              console.warn('Websocket connection failed:', code);
+              code = 1;
             }
+            call_api('SNet_WebsocketStatus', code);
           }
         ));
       } else {
@@ -369,7 +375,7 @@ const readFile = (file, progressCb) =>
       resolve(reader.result);
     };
     reader.onerror = () => reject(reader.error);
-    reader.onabort = () => reject();
+    reader.onabort = () => reject(new Error('Reading the MPQ file was aborted.'));
     if (progressCb) {
       reader.addEventListener('progress', progressCb);
     }

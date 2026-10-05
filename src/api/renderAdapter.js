@@ -33,7 +33,7 @@ export function createRenderAdapter(canvas, onBeltUpdate) {
   const offscreen = supportsOffscreen();
   const ctx = offscreen
     ? canvas.getContext('bitmaprenderer')
-    : canvas.getContext('2d', {alpha: false});
+    : canvas.getContext('2d', { alpha: false });
 
   // ⚡ Bolt: Cache ImageData objects by dimensions to eliminate constant
   // allocations of Uint8ClampedArray per frame, reducing GC pressure.
@@ -42,16 +42,20 @@ export function createRenderAdapter(canvas, onBeltUpdate) {
   // Visibility state: skip canvas work while the tab is hidden.
   let visible = typeof document !== 'undefined' ? !document.hidden : true;
 
-  function handleRender({bitmap, images, text, clip, belt}) {
+  function handleRender({ bitmap, images, text, clip, belt }) {
     if (!visible) {
       // Tab is hidden — drop the frame entirely to save CPU.
-      // The game simulation in the worker is unaffected.
+      // The game simulation in the worker is unaffected. Release dropped
+      // bitmaps now: each holds ~1.2 MB that GC would otherwise keep around.
+      if (bitmap && typeof bitmap.close === 'function') {
+        bitmap.close();
+      }
       return;
     }
     if (bitmap) {
       ctx.transferFromImageBitmap(bitmap);
     } else {
-      for (const {x, y, w, h, data} of images) {
+      for (const { x, y, w, h, data } of images) {
         const key = (w << 16) | h;
         let image = imageCache.get(key);
         if (!image) {
@@ -65,15 +69,15 @@ export function createRenderAdapter(canvas, onBeltUpdate) {
         ctx.save();
         ctx.font = 'bold 13px Times New Roman';
         if (clip) {
-          const {x0, y0, x1, y1} = clip;
+          const { x0, y0, x1, y1 } = clip;
           ctx.beginPath();
           ctx.rect(x0, y0, x1 - x0, y1 - y0);
           ctx.clip();
         }
-        for (const {x, y, text: str, color} of text) {
-          const r = ((color >> 16) & 0xFF);
-          const g = ((color >> 8) & 0xFF);
-          const b = (color & 0xFF);
+        for (const { x, y, text: str, color } of text) {
+          const r = (color >> 16) & 0xff;
+          const g = (color >> 8) & 0xff;
+          const b = color & 0xff;
           ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
           ctx.fillText(str, x, y + 22);
         }
@@ -92,5 +96,5 @@ export function createRenderAdapter(canvas, onBeltUpdate) {
     visible = Boolean(nextVisible);
   }
 
-  return {offscreen, handleRender, setVisible};
+  return { offscreen, handleRender, setVisible };
 }

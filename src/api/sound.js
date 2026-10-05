@@ -18,8 +18,16 @@ function decodeAudioData(context, buffer) {
 }
 
 function safeStop(source) {
-  try { source.stop(); } catch (e) { /* already ended */ }
-  try { source.disconnect(); } catch (e) { /* already disconnected */ }
+  try {
+    source.stop();
+  } catch (e) {
+    /* already ended */
+  }
+  try {
+    source.disconnect();
+  } catch (e) {
+    /* already disconnected */
+  }
 }
 
 export default function init_sound() {
@@ -52,9 +60,9 @@ export default function init_sound() {
 
   function makeSound(buffer) {
     const gain = context.createGain();
-    const panner = StereoPannerNode ? new StereoPannerNode(context, {pan: 0}) : null;
+    const panner = StereoPannerNode ? new StereoPannerNode(context, { pan: 0 }) : null;
     wireChain(gain, panner);
-    return {buffer, gain, panner};
+    return { buffer, gain, panner };
   }
 
   return {
@@ -103,7 +111,7 @@ export default function init_sound() {
           const relVolume = Math.pow(2.0, pan / 1000.0);
           src.panner.pan.value = 1.0 - 2.0 / (1.0 + relVolume);
         }
-        src.source = src.buffer.then(buffer => {
+        src.source = src.buffer.then((buffer) => {
           const source = context.createBufferSource();
           source.buffer = buffer;
           source.loop = !!loop;
@@ -136,8 +144,16 @@ export default function init_sound() {
           src.source = null;
         }
         // Disconnect the persistent chain so the nodes can be GC'd.
-        try { if (src.panner) src.panner.disconnect(); } catch (e) { /* already disconnected */ }
-        try { src.gain.disconnect(); } catch (e) { /* already disconnected */ }
+        try {
+          if (src.panner) src.panner.disconnect();
+        } catch (e) {
+          /* already disconnected */
+        }
+        try {
+          src.gain.disconnect();
+        } catch (e) {
+          /* already disconnected */
+        }
       }
       sounds.delete(id);
     },
@@ -148,14 +164,25 @@ export default function init_sound() {
           sound.source.then(safeStop);
           sound.source = null;
         }
-        try { if (sound.panner) sound.panner.disconnect(); } catch (e) { /* already disconnected */ }
-        try { sound.gain.disconnect(); } catch (e) { /* already disconnected */ }
+        try {
+          if (sound.panner) sound.panner.disconnect();
+        } catch (e) {
+          /* already disconnected */
+        }
+        try {
+          sound.gain.disconnect();
+        } catch (e) {
+          /* already disconnected */
+        }
       }
       sounds.clear();
       if (context) {
-        context.close();
+        const closing = context.close();
+        if (closing && typeof closing.catch === 'function') {
+          closing.catch(() => {});
+        }
         context = null;
       }
-    }
+    },
   };
 }

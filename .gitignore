@@ -27,3 +27,7 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Playwright output
+test-results/
+playwright-report/

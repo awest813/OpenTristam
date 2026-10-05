@@ -18,7 +18,7 @@ const readFile = (file, progress) =>
       resolve(reader.result);
     };
     reader.onerror = () => reject(reader.error);
-    reader.onabort = () => reject();
+    reader.onabort = () => reject(new Error('Reading the MPQ file was aborted.'));
     if (progress) {
       reader.addEventListener('progress', progress);
     }

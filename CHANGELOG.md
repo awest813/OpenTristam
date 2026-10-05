@@ -52,6 +52,16 @@ All notable changes to this project will be documented in this file.
 - Bold copy (`<strong>`) rendered as plain text because of the CSS reset.
 - Initial dialog focus no longer scrolls the title out of view on short screens.
 - Storage warning banner can be dismissed instead of permanently covering the start screen.
+- Quitting the game could lose the final save: the page reloaded while the save's IndexedDB write was still in flight. Exit now waits (up to 5 s) for pending writes.
+- Mouse clicks on in-game banners and notices (e.g. multiplayer "Dismiss") also clicked the game world underneath; they now only operate the button. Releases still reach the game so drags can't stick.
+- A failed launch (download error, storage failure) leaked an AudioContext on every retry; failures now close it, and worker setup errors tear down the partially created worker.
+- Loading could hang forever when a file read was aborted (the worker's error reporter threw on `undefined`), and the MPQ compressor could get stuck the same way.
+- A failed connection to the multiplayer relay was swallowed as an unhandled rejection, leaving the game waiting; it is now reported to the engine as a closed connection.
+- Frames dropped while the tab is hidden now release their ImageBitmap immediately instead of piling up (~1.2 MB each at 20 fps).
+- The MPQ compressor revokes its result blob URL when compressing again or closing, instead of keeping a multi-hundred-MB blob alive.
+- A cursor update scheduled just before the game stopped no longer throws.
+- **Retry storage** now refreshes whether shareware data is cached.
+- The Playwright e2e suite pointed at the wrong URL and asserted copy that no longer exists; it now covers start, storage, Save Manager, download-failure recovery and the loading screen.
 - Errors while offline were always reported as "Connection problem", even for a corrupt MPQ in a game that can now run offline; known game errors now take precedence. Server-side HTTP failures (5xx/408/429, including the service worker's offline 503) count as connection problems, and a 404 gets its own message.
 - Save Manager briefly rendered its empty state before the list loaded, dropping keyboard focus to the page so Escape stopped closing it.
 - Contrast and touch-target fixes: card labels, loading text, install "Not now", toast dismiss buttons, and onboarding "Got it" links; links follow high-contrast mode.

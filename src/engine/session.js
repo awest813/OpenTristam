@@ -319,6 +319,9 @@ export function setCursorPos(app, x, y) {
     y: rect.top + ((rect.bottom - rect.top) * y) / 480,
   };
   setTimeout(() => {
-    app.game('DApi_Mouse', 0, 0, 0, x, y);
+    // The game may have errored or been disposed since the cursor message.
+    if (typeof app.game === 'function') {
+      app.game('DApi_Mouse', 0, 0, 0, x, y);
+    }
   });
 }

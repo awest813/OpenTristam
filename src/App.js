@@ -630,6 +630,8 @@ class App extends React.Component {
           : null,
         storageRetrying: false,
         has_saves: hasSaves,
+        // Storage may have been unreadable before; re-check the cached archive.
+        has_spawn: typeof fs.has === 'function' && fs.has('spawn.mpq'),
         savesVersion: this.state.savesVersion + 1,
       });
       this.showStartupNotice({
