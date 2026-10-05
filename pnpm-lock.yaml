@@ -29,9 +29,6 @@ importers:
       '@typescript-eslint/parser':
         specifier: 1.6.0
         version: 1.6.0(eslint@8.57.1)(typescript@5.9.3)
-      axios:
-        specifier: ^0.21.1
-        version: 0.21.4
       babel-eslint:
         specifier: 10.0.1
         version: 10.0.1(eslint@8.57.1)
@@ -158,9 +155,6 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
-      react-ga:
-        specifier: ^2.6.0
-        version: 2.7.0(prop-types@15.8.1)(react@18.3.1)
       resolve:
         specifier: 1.10.0
         version: 1.10.0
@@ -2177,9 +2171,6 @@ packages:
   axe-core@4.11.1:
     resolution: {integrity: sha512-BASOg+YwO2C+346x3LZOeoovTIoTrRqEsqMa6fmfAV0P+U9mFr9NsyOEpiYvFjbc64NMrSswhV50WdXzdb/Z5A==}
     engines: {node: '>=4'}
-
-  axios@0.21.4:
-    resolution: {integrity: sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==}
 
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
@@ -5827,12 +5818,6 @@ packages:
 
   react-error-overlay@6.1.0:
     resolution: {integrity: sha512-SN/U6Ytxf1QGkw/9ve5Y+NxBbZM6Ht95tuXNMKs8EJyFa/Vy/+Co3stop3KBHARfn/giv+Lj1uUnTfOJ3moFEQ==}
-
-  react-ga@2.7.0:
-    resolution: {integrity: sha512-AjC7UOZMvygrWTc2hKxTDvlMXEtbmA0IgJjmkhgmQQ3RkXrWR11xEagLGFGaNyaPnmg24oaIiaNPnEoftUhfXA==}
-    peerDependencies:
-      prop-types: ^15.6.0
-      react: ^15.6.2 || ^16.0
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
@@ -9784,12 +9769,6 @@ snapshots:
   aws4@1.13.2: {}
 
   axe-core@4.11.1: {}
-
-  axios@0.21.4:
-    dependencies:
-      follow-redirects: 1.15.11(debug@4.4.3(supports-color@6.1.0))
-    transitivePeerDependencies:
-      - debug
 
   axobject-query@4.1.0: {}
 
@@ -14417,11 +14396,6 @@ snapshots:
       scheduler: 0.23.2
 
   react-error-overlay@6.1.0: {}
-
-  react-ga@2.7.0(prop-types@15.8.1)(react@18.3.1):
-    dependencies:
-      prop-types: 15.8.1
-      react: 18.3.1
 
   react-is@16.13.1: {}
 

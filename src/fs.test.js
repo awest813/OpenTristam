@@ -16,6 +16,7 @@ function makeMockStore(initialData = {}) {
   const listeners = {};
   return {
     json: jest.fn(() => Promise.resolve(initialData)),
+    keys: jest.fn(() => Promise.resolve(Object.keys(initialData))),
     set: jest.fn(() => Promise.resolve()),
     remove: jest.fn(() => Promise.resolve()),
     clear: jest.fn(() => Promise.resolve()),
@@ -51,10 +52,48 @@ describe('create_fs — successful IndexedDB init', () => {
     expect(mockStore.remove).toHaveBeenCalled();
   });
 
-  it('populates files map from the store', async () => {
+  it('populates files map with small files and defers MPQ archives', async () => {
     const fs = await create_fs();
     expect(fs.files.has('single_0.sv')).toBe(true);
-    expect(fs.files.has('spawn.mpq')).toBe(true);
+    expect(fs.files.has('spawn.mpq')).toBe(false);
+    expect(fs.has('spawn.mpq')).toBe(true);
+    expect(mockStore.json).not.toHaveBeenCalled();
+    expect(mockStore.get).not.toHaveBeenCalledWith('spawn.mpq');
+  });
+
+  it('load() reads a deferred archive into the files map', async () => {
+    const fs = await create_fs();
+    const data = await fs.load('SPAWN.MPQ');
+    expect(Array.from(data)).toEqual([4, 5]);
+    expect(fs.files.get('spawn.mpq')).toBe(data);
+    expect(fs.has('spawn.mpq')).toBe(true);
+  });
+
+  it('load() shares one storage read between concurrent callers', async () => {
+    const fs = await create_fs();
+    const [a, b] = await Promise.all([fs.load('spawn.mpq'), fs.load('spawn.mpq')]);
+    expect(a).toBe(b);
+    expect(mockStore.get.mock.calls.filter(([key]) => key === 'spawn.mpq')).toHaveLength(1);
+  });
+
+  it('load() resolves undefined for a missing file', async () => {
+    const fs = await create_fs();
+    await expect(fs.load('diabdat.mpq')).resolves.toBeUndefined();
+    expect(fs.has('diabdat.mpq')).toBe(false);
+  });
+
+  it('delete() forgets a deferred archive', async () => {
+    const fs = await create_fs();
+    await fs.delete('spawn.mpq');
+    expect(fs.has('spawn.mpq')).toBe(false);
+    expect(fs.list()).toEqual(['single_0.sv']);
+  });
+
+  it('records remote archive writes without reading them into memory', async () => {
+    const fs = await create_fs();
+    mockStore._emit('set', { key: 'diabdat.mpq', value: new Uint8Array([1]) });
+    expect(fs.files.has('diabdat.mpq')).toBe(false);
+    expect(fs.has('diabdat.mpq')).toBe(true);
   });
 
   it('list() returns sorted file names', async () => {
@@ -178,10 +217,18 @@ describe('create_fs — IndexedDB init failure', () => {
   beforeEach(() => {
     mockStore = {
       json: jest.fn(() => Promise.reject(new Error('IDB unavailable'))),
+      keys: jest.fn(() => Promise.reject(new Error('IDB unavailable'))),
       set: jest.fn(() => Promise.reject(new Error('IDB unavailable'))),
       remove: jest.fn(() => Promise.reject(new Error('IDB unavailable'))),
       on: jest.fn(),
     };
+  });
+
+  it('has() reports files kept in memory for this session', async () => {
+    const fs = await create_fs();
+    expect(fs.has('spawn.mpq')).toBe(false);
+    fs.files.set('spawn.mpq', new Uint8Array([1]));
+    expect(fs.has('SPAWN.MPQ')).toBe(true);
   });
 
   it('returns an initError on failure', async () => {

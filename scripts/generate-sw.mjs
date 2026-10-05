@@ -1,11 +1,15 @@
 /**
- * Post-build script: stamps the service worker with a unique cache version.
+ * Post-build script: stamps build information into the service worker.
  *
  * After `vite build` copies `public/service-worker.js` into `build/`, this
- * script reads it, replaces the `__CACHE_VERSION__` placeholder with a string
- * derived from the package version and a hash of the build asset filenames,
- * then writes the file back.  Changing the cache version on every deploy
- * ensures browsers install the new service worker and clear the old cache.
+ * script fills in three declarations there and writes the file back:
+ * - `CACHE_VERSION` ('__CACHE_VERSION__'): package version + a hash of the
+ *   asset filenames, so every deploy installs a new worker and drops old caches.
+ * - `PRECACHE_ASSETS` ([/* __PRECACHE_ASSETS__ *\/]): files cached at install
+ *   so the app (and the shareware engine) work offline.
+ * - `BUILD_ASSETS` ([/* __BUILD_ASSETS__ *\/]): every hashed file, for pruning.
+ * The build fails if any declaration can't be found, since a worker with a
+ * leftover placeholder would ship a broken offline cache.
  *
  * Usage (via package.json "build" script):
  *   vite build && node scripts/generate-sw.mjs
@@ -40,12 +44,49 @@ if (existsSync(assetsDir)) {
 const cacheVersion = `${appVersion}-${assetHash}`;
 
 const original = readFileSync(swPath, 'utf-8');
-if (!original.includes('__CACHE_VERSION__')) {
-  console.warn('[generate-sw] __CACHE_VERSION__ placeholder not found in service-worker.js — skipping stamp.');
-  process.exit(0);
-}
 
-const stamped = original.replace('__CACHE_VERSION__', cacheVersion);
+// Every hashed build file (source maps excluded), used to prune stale entries.
+const buildAssets = existsSync(assetsDir)
+  ? readdirSync(assetsDir)
+      .filter((name) => !name.endsWith('.map'))
+      .sort()
+      .map((name) => `assets/${name}`)
+  : [];
+// The shareware engine is precached too (~1.4 MB, kept across deploys while its
+// hash is unchanged), so cached shareware data really is playable offline. The
+// retail engine and compressor binaries are cached on first use.
+const precacheAssets = buildAssets.filter(
+  (path) => /\.(js|css)$/.test(path) || /\/DiabloSpawn-[^/]+\.wasm$/.test(path)
+);
+
+// Match the declarations themselves (whitespace-tolerant, since Prettier may
+// reflow them) rather than bare tokens that could also appear in comments.
+const replacements = [
+  [
+    /const CACHE_VERSION = '__CACHE_VERSION__';/,
+    `const CACHE_VERSION = ${JSON.stringify(cacheVersion)};`,
+  ],
+  [
+    /const PRECACHE_ASSETS = \[\s*\/\* __PRECACHE_ASSETS__ \*\/\s*\];/,
+    `const PRECACHE_ASSETS = ${JSON.stringify(precacheAssets)};`,
+  ],
+  [
+    /const BUILD_ASSETS = \[\s*\/\* __BUILD_ASSETS__ \*\/\s*\];/,
+    `const BUILD_ASSETS = ${JSON.stringify(buildAssets)};`,
+  ],
+];
+let stamped = original;
+for (const [pattern, value] of replacements) {
+  if (!pattern.test(stamped)) {
+    // A worker that silently keeps a placeholder ships a broken offline cache.
+    console.error(`[generate-sw] Placeholder ${pattern} not found in service-worker.js.`);
+    process.exit(1);
+  }
+  stamped = stamped.replace(pattern, () => value);
+}
 writeFileSync(swPath, stamped, 'utf-8');
 
-console.log(`[generate-sw] Service worker stamped: opentristam-${cacheVersion}`);
+console.log(
+  `[generate-sw] Service worker stamped: opentristam-${cacheVersion} ` +
+    `(${precacheAssets.length} precached of ${buildAssets.length} assets)`
+);

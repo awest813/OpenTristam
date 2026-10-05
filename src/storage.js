@@ -10,8 +10,13 @@ window.addEventListener('message', async ({ data, source, origin }) => {
   switch (data?.method) {
     case 'transfer': {
       if (!source?.postMessage) return;
-      const { files } = await fsPromise;
-      source.postMessage({ method: 'storage', files }, origin);
+      const fs = await fsPromise;
+      // Large archives (*.mpq) are read lazily; load them so a transfer
+      // carries the full storage contents.
+      if (typeof fs.list === 'function' && typeof fs.load === 'function') {
+        await Promise.all(fs.list().map((name) => fs.load(name).catch(() => undefined)));
+      }
+      source.postMessage({ method: 'storage', files: fs.files }, origin);
       break;
     }
     case 'clear': {

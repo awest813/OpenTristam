@@ -3,7 +3,7 @@
  *
  * First-launch shareware boots in two sequential phases that live in different
  * contexts and each report their own 0→100% stream:
- *   1. the asset download (spawn.mpq, ~50 MB) on the main thread, and
+ *   1. the asset download (spawn.mpq, ~25 MB) on the main thread, and
  *   2. the worker's WASM/MPQ load.
  *
  * Surfacing both streams verbatim makes the loading bar fill, snap back to 0%,
@@ -51,7 +51,7 @@ export function createStartupProgress(api, { downloadShare = DEFAULT_DOWNLOAD_SH
     },
 
     // Worker WASM/MPQ load phase. After a fresh download we suppress the byte
-    // readout so it does not jarringly swap the ~50 MB total for the tiny WASM
+    // readout so it does not jarringly swap the ~25 MB total for the tiny WASM
     // total; when the worker load is the primary phase we keep it.
     worker({ text, loaded, total }) {
       const base = downloadSeen ? downloadShare : 0;

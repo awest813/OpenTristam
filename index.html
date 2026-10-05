@@ -23,6 +23,9 @@
       content="Play Diablo 1 in a modern browser using WebAssembly. Local saves, touch controls, and multiplayer."
     />
     <link rel="manifest" href="manifest.json" />
+    <!-- iOS ignores manifest icons and title when adding to the home screen. -->
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <meta name="apple-mobile-web-app-title" content="OpenTristam" />
     <title>OpenTristam — Diablo in the Browser</title>
   </head>
   <body>

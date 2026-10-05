@@ -107,7 +107,7 @@ export default function StartScreen(props) {
           <p className="startPathCardDesc">
             {hasSpawn
               ? 'Shareware data is already cached in this browser.'
-              : 'Downloads shareware data on first launch (~50 MB).'}
+              : 'Downloads shareware data on first launch (~25 MB).'}
           </p>
           <button
             type="button"

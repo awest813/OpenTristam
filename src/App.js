@@ -1,10 +1,8 @@
 import React from 'react';
 import './App.scss';
 import classNames from 'classnames';
-import ReactGA from 'react-ga';
 
 import create_fs from './fs';
-import { SpawnSizes } from './api/load_spawn';
 import { getDropFile, isDropFile } from './input/fileDrop';
 import createFileDropTarget from './input/fileDropTarget';
 import createEventListeners from './input/eventListeners';
@@ -39,16 +37,18 @@ import {
   handleGameError,
   handleGameExit,
   handleProgress,
+  preloadGameRuntime,
   resetToStart,
   setCurrentSave,
   setCursorPos,
 } from './engine/session';
 import SessionContext from './engine/sessionContext';
+import { applyUpdate } from './serviceWorker';
 
+import ChunkErrorBoundary from './ui/ChunkErrorBoundary';
 import ErrorOverlay from './ui/ErrorOverlay';
 import LoadingScreen from './ui/LoadingScreen';
 import StartScreen from './ui/StartScreen';
-import SaveManager from './ui/SaveManager';
 import MultiplayerStatusBanner from './ui/MultiplayerStatusBanner';
 import {
   DEFAULT_TOUCH_LAYOUT_PRESET,
@@ -58,15 +58,6 @@ import {
   loadPreferences,
   savePreferences,
 } from './preferences';
-
-import Peer from 'peerjs';
-
-window.Peer = Peer;
-
-if (process.env.NODE_ENV === 'production') {
-  ReactGA.initialize('UA-43123589-6');
-  ReactGA.pageview('/');
-}
 
 let keyboardRule = null;
 let keyboardRuleResolved = false;
@@ -90,6 +81,7 @@ const scheduleIdle =
     : (cb) => setTimeout(cb, 0);
 
 const CompressMpq = React.lazy(() => import('./mpqcmp'));
+const SaveManager = React.lazy(() => import('./ui/SaveManager'));
 
 class App extends React.Component {
   files = new Map();
@@ -105,6 +97,7 @@ class App extends React.Component {
     updateRegistration: null,
     storageError: null,
     storageRetrying: false,
+    storageErrorDismissed: false,
     // Game session state (set by engine/session helpers)
     progress: null,
     error: null,
@@ -289,15 +282,26 @@ class App extends React.Component {
           }
         });
       }
-      const spawn = fs.files.get('spawn.mpq');
-      if (spawn && SpawnSizes.includes(spawn.byteLength)) {
+      // Presence check only; load_spawn validates the size before launching.
+      if (fs.has('spawn.mpq')) {
         this.setState({ has_spawn: true });
       }
       this.refreshSaves();
     });
+
+    // Fetch the game runtime chunk once the start screen is up, so pressing
+    // Play doesn't wait on it. Failures are retried on launch.
+    this.preloadTimer = setTimeout(() => {
+      this.preloadTimer = null;
+      scheduleIdle(() => preloadGameRuntime().catch(() => {}));
+    }, 1500);
   }
 
   componentWillUnmount() {
+    if (this.preloadTimer) {
+      clearTimeout(this.preloadTimer);
+      this.preloadTimer = null;
+    }
     if (this.startupNoticeTimer) {
       clearTimeout(this.startupNoticeTimer);
       this.startupNoticeTimer = null;
@@ -525,6 +529,7 @@ class App extends React.Component {
   };
 
   dismissOfflineReady = () => this.setState({ offlineReady: false });
+  dismissStorageError = () => this.setState({ storageErrorDismissed: true });
   dismissUpdateBanner = () => this.setState({ updateDismissed: true });
 
   // ─── Startup notices ────────────────────────────────────────────────────────
@@ -555,9 +560,7 @@ class App extends React.Component {
 
   applySwUpdate = () => {
     const { updateRegistration } = this.state;
-    import('./serviceWorker').then(({ applyUpdate }) => {
-      applyUpdate(updateRegistration);
-    });
+    applyUpdate(updateRegistration);
   };
 
   flushPendingCompressedFile = () => {
@@ -622,11 +625,14 @@ class App extends React.Component {
         }
       }
       this.setState({
+        storageErrorDismissed: false,
         storageError: fs.initError
           ? 'Save storage isn’t available in this browser — progress won’t be kept between sessions. You can still play.'
           : null,
         storageRetrying: false,
         has_saves: hasSaves,
+        // Storage may have been unreadable before; re-check the cached archive.
+        has_spawn: fs.has('spawn.mpq'),
         savesVersion: this.state.savesVersion + 1,
       });
       this.showStartupNotice({
@@ -638,6 +644,7 @@ class App extends React.Component {
     } catch (e) {
       this.setState({
         storageRetrying: false,
+        storageErrorDismissed: false,
         storageError:
           e.message ||
           'Save storage isn’t available in this browser — progress won’t be kept between sessions. You can still play.',
@@ -647,6 +654,7 @@ class App extends React.Component {
 
   onStorageFailure = () => {
     this.setState({
+      storageErrorDismissed: false,
       storageError:
         'Couldn’t write to browser storage — progress may not be kept. Check available space or try another browser.',
     });
@@ -1013,14 +1021,22 @@ class App extends React.Component {
   renderUi() {
     const { started, loading, error, show_saves, compress } = this.state;
     if (show_saves) {
-      return <SaveManager />;
+      return (
+        <ChunkErrorBoundary onClose={this.closeSaveManager}>
+          <React.Suspense fallback={<LoadingScreen progress={{ text: 'Loading saves...' }} />}>
+            <SaveManager />
+          </React.Suspense>
+        </ChunkErrorBoundary>
+      );
     } else if (compress) {
       return (
-        <React.Suspense
-          fallback={<LoadingScreen progress={{ text: 'Loading MPQ compressor...' }} />}
-        >
-          <CompressMpq onClose={this.closeCompressor} ref={this.setCompressMpqRef} />
-        </React.Suspense>
+        <ChunkErrorBoundary onClose={this.closeCompressor}>
+          <React.Suspense
+            fallback={<LoadingScreen progress={{ text: 'Loading MPQ compressor...' }} />}
+          >
+            <CompressMpq onClose={this.closeCompressor} ref={this.setCompressMpqRef} />
+          </React.Suspense>
+        </ChunkErrorBoundary>
       );
     } else if (error) {
       return <ErrorOverlay />;
@@ -1084,7 +1100,10 @@ class App extends React.Component {
           )}
           {offlineReady && !started && (
             <div className="offlineReadyToast" role="status" aria-live="polite" aria-atomic="true">
-              Ready to play offline.{' '}
+              {/* The app shell is cached now; game data only once played online. */}
+              {this.state.has_spawn
+                ? 'Ready to play offline.'
+                : 'Works offline now. Play shareware once while online to keep it playable offline.'}{' '}
               <button
                 type="button"
                 onClick={this.dismissOfflineReady}
@@ -1094,17 +1113,27 @@ class App extends React.Component {
               </button>
             </div>
           )}
-          {this.state.storageError && (
+          {this.state.storageError && !this.state.storageErrorDismissed && (
             <div className="storageBanner" role="alert" aria-live="assertive" aria-atomic="true">
               <span>{this.state.storageError}</span>
-              <button
-                type="button"
-                className="storageBanner-retry"
-                onClick={this.retryStorage}
-                disabled={this.state.storageRetrying}
-              >
-                {this.state.storageRetrying ? 'Retrying…' : 'Retry storage'}
-              </button>
+              <div className="storageBanner-actions">
+                <button
+                  type="button"
+                  className="storageBanner-retry"
+                  onClick={this.retryStorage}
+                  disabled={this.state.storageRetrying}
+                >
+                  {this.state.storageRetrying ? 'Retrying…' : 'Retry storage'}
+                </button>
+                <button
+                  type="button"
+                  className="storageBanner-dismiss"
+                  onClick={this.dismissStorageError}
+                  aria-label="Dismiss storage warning"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
           <MultiplayerStatusBanner />

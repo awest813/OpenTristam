@@ -54,7 +54,9 @@ export default function DialogFrame({
     const container = containerRef.current;
     const target = resolveInitialFocus(container, initialFocusSelector);
     if (target && typeof target.focus === 'function') {
-      target.focus();
+      // Don't let initial focus scroll a tall dialog: on short screens it would
+      // push the title out of view before the player has seen it.
+      target.focus({ preventScroll: true });
     }
 
     return () => {

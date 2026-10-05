@@ -89,3 +89,62 @@ describe('createFsAdapter — handleFs', () => {
     expect(onPersistError).toHaveBeenCalledWith(expect.any(Error), 'update');
   });
 });
+
+describe('createFsAdapter — flush', () => {
+  it('resolves immediately when nothing is pending', async () => {
+    const adapter = createFsAdapter(makeFs());
+    await expect(adapter.flush()).resolves.toBeUndefined();
+  });
+
+  it('waits for in-flight writes before resolving', async () => {
+    let finishWrite;
+    const fs = makeFs();
+    fs.update.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishWrite = resolve;
+        })
+    );
+    const adapter = createFsAdapter(fs);
+    adapter.handleFs({ func: 'update', params: ['single_0.sv', new Uint8Array([1])] });
+
+    let flushed = false;
+    const flushing = adapter.flush().then(() => {
+      flushed = true;
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(flushed).toBe(false);
+
+    finishWrite();
+    await flushing;
+    expect(flushed).toBe(true);
+  });
+
+  it('still resolves when a write fails', async () => {
+    const fs = makeFs();
+    fs.update.mockImplementation(() => Promise.reject(new Error('quota')));
+    const onPersistError = jest.fn();
+    const adapter = createFsAdapter(fs, { onPersistError });
+    adapter.handleFs({ func: 'update', params: ['single_0.sv', new Uint8Array([1])] });
+
+    await adapter.flush();
+    expect(onPersistError).toHaveBeenCalled();
+  });
+
+  it('gives up after the timeout if storage never settles', async () => {
+    jest.useFakeTimers();
+    try {
+      const fs = makeFs();
+      fs.update.mockImplementation(() => new Promise(() => {}));
+      const adapter = createFsAdapter(fs);
+      adapter.handleFs({ func: 'update', params: ['single_0.sv', new Uint8Array([1])] });
+
+      const flushing = adapter.flush(1000);
+      jest.advanceTimersByTime(1000);
+      await expect(flushing).resolves.toBeUndefined();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

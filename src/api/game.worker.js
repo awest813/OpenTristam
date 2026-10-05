@@ -2,7 +2,8 @@ import DiabloBinary from './Diablo.wasm?url';
 import DiabloModule from './Diablo.jscc';
 import SpawnBinary from './DiabloSpawn.wasm?url';
 import SpawnModule from './DiabloSpawn.jscc';
-import axios from 'axios';
+import { downloadArrayBuffer } from './download';
+import readFile from './readFile';
 
 import websocket_open from './websocket';
 import { WorkerToMain, MainToWorker } from './workerMessages';
@@ -39,7 +40,9 @@ function onError(err, action = WorkerToMain.ERROR) {
   if (err instanceof Error) {
     worker.postMessage({ action, error: err.toString(), stack: err.stack });
   } else {
-    worker.postMessage({ action, error: err.toString() });
+    // Rejections can carry anything, including undefined (e.g. an aborted
+    // FileReader); never let reporting the error throw and hang the loader.
+    worker.postMessage({ action, error: err != null ? String(err) : 'Unknown error' });
   }
 }
 
@@ -166,11 +169,15 @@ const DApi = {
             }
           },
           (code) => {
+            // A failed connection used to be rethrown here, inside a promise
+            // callback, so it vanished as an unhandled rejection and the game
+            // waited forever. Report it as "closed" (1), the same status the
+            // engine already handles when the socket closes before opening.
             if (typeof code !== 'number') {
-              throw code;
-            } else {
-              call_api('SNet_WebsocketStatus', code);
+              console.warn('Websocket connection failed:', code);
+              code = 1;
             }
+            call_api('SNet_WebsocketStatus', code);
           }
         ));
       } else {
@@ -359,30 +366,11 @@ function progress(text, loaded, total) {
   worker.postMessage({ action: WorkerToMain.PROGRESS, text, loaded, total });
 }
 
-const readFile = (file, progressCb) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (progressCb) {
-        progressCb({ loaded: file.size });
-      }
-      resolve(reader.result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.onabort = () => reject();
-    if (progressCb) {
-      reader.addEventListener('progress', progressCb);
-    }
-    reader.readAsArrayBuffer(file);
-  });
-
 async function initWasm(spawn, progressCb) {
-  const binary = await axios.request({
-    url: spawn ? SpawnBinary : DiabloBinary,
-    responseType: 'arraybuffer',
-    onDownloadProgress: progressCb,
+  const binary = await downloadArrayBuffer(spawn ? SpawnBinary : DiabloBinary, {
+    onProgress: progressCb,
   });
-  const result = await (spawn ? SpawnModule : DiabloModule)({ wasmBinary: binary.data }).ready;
+  const result = await (spawn ? SpawnModule : DiabloModule)({ wasmBinary: binary }).ready;
   progressCb({ loaded: 2000000 });
   return result;
 }
