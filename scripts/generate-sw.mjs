@@ -1,11 +1,15 @@
 /**
- * Post-build script: stamps the service worker with a unique cache version.
+ * Post-build script: stamps build information into the service worker.
  *
  * After `vite build` copies `public/service-worker.js` into `build/`, this
- * script reads it, replaces the `__CACHE_VERSION__` placeholder with a string
- * derived from the package version and a hash of the build asset filenames,
- * then writes the file back.  Changing the cache version on every deploy
- * ensures browsers install the new service worker and clear the old cache.
+ * script fills in three declarations there and writes the file back:
+ * - `CACHE_VERSION` ('__CACHE_VERSION__'): package version + a hash of the
+ *   asset filenames, so every deploy installs a new worker and drops old caches.
+ * - `PRECACHE_ASSETS` ([/* __PRECACHE_ASSETS__ *\/]): files cached at install
+ *   so the app (and the shareware engine) work offline.
+ * - `BUILD_ASSETS` ([/* __BUILD_ASSETS__ *\/]): every hashed file, for pruning.
+ * The build fails if any declaration can't be found, since a worker with a
+ * leftover placeholder would ship a broken offline cache.
  *
  * Usage (via package.json "build" script):
  *   vite build && node scripts/generate-sw.mjs
@@ -41,16 +45,19 @@ const cacheVersion = `${appVersion}-${assetHash}`;
 
 const original = readFileSync(swPath, 'utf-8');
 
-// Every hashed build file (for pruning stale entries) and the subset needed to
-// open the app offline: code and styles. Engine .wasm (~1.5 MB each) and other
-// large binaries are cached on first use instead of on every install.
+// Every hashed build file (source maps excluded), used to prune stale entries.
 const buildAssets = existsSync(assetsDir)
   ? readdirSync(assetsDir)
       .filter((name) => !name.endsWith('.map'))
       .sort()
       .map((name) => `assets/${name}`)
   : [];
-const precacheAssets = buildAssets.filter((path) => /\.(js|css)$/.test(path));
+// The shareware engine is precached too (~1.4 MB, kept across deploys while its
+// hash is unchanged), so cached shareware data really is playable offline. The
+// retail engine and compressor binaries are cached on first use.
+const precacheAssets = buildAssets.filter(
+  (path) => /\.(js|css)$/.test(path) || /\/DiabloSpawn-[^/]+\.wasm$/.test(path)
+);
 
 // Match the declarations themselves (whitespace-tolerant, since Prettier may
 // reflow them) rather than bare tokens that could also appear in comments.

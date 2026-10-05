@@ -151,6 +151,12 @@ test.describe('offline', () => {
     await context.setOffline(true);
     await page.reload();
     await expect(page.getByRole('button', { name: 'Play Shareware' })).toBeVisible();
+    // The worker must survive an offline load (the localhost registration
+    // check must not treat the worker's own 503 reply as "no worker").
+    await page.waitForTimeout(1000);
+    expect(
+      await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)
+    ).toBe(1);
   });
 
   test('shareware played once online can be played offline', async ({ page, context }) => {

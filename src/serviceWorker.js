@@ -126,7 +126,10 @@ async function checkValidServiceWorker(swUrl, config) {
     const contentType = response.headers.get('content-type');
     const isJavaScript = contentType != null && contentType.includes('javascript');
 
-    if (response.status === 404 || !isJavaScript) {
+    // Only a real 404 or a non-JS page means no worker is deployed here. When
+    // offline, our own worker answers with a synthetic 503 — not a reason to
+    // unregister it.
+    if (response.status === 404 || (response.ok && !isJavaScript)) {
       // No service worker found. Probably a different app. Reload the page.
       const registration = await navigator.serviceWorker.ready;
       await registration.unregister();

@@ -48,17 +48,15 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const shell = await caches.open(SHELL_CACHE);
-      await shell.addAll(SHELL_FILES.map((file) => base + file));
+      // Bypass the HTTP cache: a stale index.html (Pages sends max-age=600)
+      // would point at chunks this build doesn't precache.
+      await shell.addAll(SHELL_FILES.map((file) => new Request(base + file, { cache: 'reload' })));
 
       const assets = await caches.open(ASSET_CACHE);
-      const missing = [];
-      for (const path of PRECACHE_ASSETS) {
-        const url = base + path;
-        if (!(await assets.match(url))) {
-          missing.push(url);
-        }
-      }
-      await assets.addAll(missing);
+      const urls = PRECACHE_ASSETS.map((path) => base + path);
+      // Skip files an earlier version already cached (hashed URLs never change).
+      const cached = await Promise.all(urls.map((url) => assets.match(url, { ignoreVary: true })));
+      await assets.addAll(urls.filter((_url, i) => !cached[i]));
     })()
   );
   // Do NOT call skipWaiting here — we wait for the user to confirm the update.
@@ -100,11 +98,8 @@ async function pruneAssets() {
   }
   const keep = new Set([...BUILD_ASSETS, ...previous].map((path) => base + path));
   keep.add(base + PREVIOUS_ASSETS_KEY);
-  for (const request of await cache.keys()) {
-    if (!keep.has(request.url)) {
-      await cache.delete(request);
-    }
-  }
+  const stale = (await cache.keys()).filter((request) => !keep.has(request.url));
+  await Promise.all(stale.map((request) => cache.delete(request)));
   await cache.put(
     base + PREVIOUS_ASSETS_KEY,
     new Response(JSON.stringify(BUILD_ASSETS), {
@@ -125,6 +120,9 @@ self.addEventListener('fetch', (event) => {
 
   // Skip game archives: they are large and persisted in IndexedDB instead.
   if (NO_CACHE_RE.test(url.pathname)) return;
+
+  // Source maps are only fetched for crash reports; don't keep them.
+  if (url.pathname.endsWith('.map')) return;
 
   // Hashed asset chunks (JS/CSS/WASM emitted by Vite into /assets/) never
   // change content for the same URL, so cache-first is safe and fast.
